@@ -12,6 +12,12 @@ export type ProgressStatus =
   | "completed"
   | "needs-review";
 
+/** One code line (or small chunk) paired with a plain-language explanation. */
+export interface WalkthroughStep {
+  code: string;
+  explanation: string;
+}
+
 export interface CodeExample {
   /** Optional short caption shown above the code block. */
   title?: string;
@@ -19,6 +25,12 @@ export interface CodeExample {
   language?: string;
   /** Optional explanation shown below the code. */
   explanation?: string;
+  /**
+   * Optional line-by-line (or chunk-by-chunk) breakdown of this example,
+   * rendered as a numbered walkthrough beneath the code block. Reserved
+   * for the simplest example on a topic — not every example needs one.
+   */
+  walkthrough?: WalkthroughStep[];
 }
 
 export interface Exercise {
@@ -37,25 +49,35 @@ export interface Topic {
   level: TopicLevel;
   /** One-line summary used in topic lists and search. */
   description: string;
-  /** Section 1: What is it? Plain language, assumes no prior knowledge. */
+  /** Section: What is it? Plain language, assumes no prior knowledge. */
   explanation: string;
-  /** Section 2: Explain Like I'm 10 — a short real-world analogy. */
+  /** Section: Explain Like I'm 10 — a short real-world analogy. */
   analogy: string;
-  /** Section 3: Simple, beginner-friendly code example(s). */
+  /** Section: Simple, beginner-friendly code example(s). */
   examples: CodeExample[];
-  /** Section 4: How It Works — internals, optionally with a text diagram. */
+  /** Section: How It Works — internals, optionally with a text diagram. */
   howItWorks: string;
   /** Optional plain-text diagram rendered in a monospace block. */
   diagram?: string;
-  /** Section 5: Why Does This Exist? */
+  /** Section: Why Does This Exist? */
   whyItExists: string;
-  /** Section 6: Common beginner mistakes. */
+  /** Section: When developers actually reach for this. */
+  whenToUse: string;
+  /** Section: When this is the wrong tool, and what to use instead. */
+  whenNotToUse: string;
+  /** Section: Common beginner mistakes. */
   commonMistakes: string[];
-  /** Section 7: Practice exercises. */
+  /** Section: Practice exercises. */
   exercises: Exercise[];
-  /** Section 8: Interview questions, shown collapsed. */
+  /** Section: Interview questions, shown collapsed. */
   interviewQuestions: InterviewQuestion[];
-  /** Section 9: Related topic ids (within the same subject unless prefixed). */
+  /**
+   * What a reader should already understand before this topic (topic ids,
+   * resolved within the same subject). Shown near the top of the page.
+   * Omit or leave empty for a subject's true starting topics.
+   */
+  prerequisites?: string[];
+  /** Section: Related topic ids (within the same subject unless prefixed). */
   relatedTopics: string[];
   /** Extra searchable keywords beyond the title/description. */
   keywords?: string[];

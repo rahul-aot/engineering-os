@@ -29,6 +29,11 @@ as "the language of the web."
         code: `alert("Hello! This popped up because of JavaScript.");`,
         explanation:
           "This one line, placed in a webpage, would show a popup box. Nothing complicated — just an instruction the browser understands and runs.",
+        walkthrough: [
+          { code: "alert(...)", explanation: "Calls a function built into every browser that shows a small popup box on screen." },
+          { code: '"Hello! This popped up..."', explanation: "The text inside the quotes is exactly what appears in that popup." },
+          { code: ";", explanation: "The semicolon marks the end of this instruction, the same way a period ends a sentence." },
+        ],
       },
     ],
     howItWorks: `
@@ -52,6 +57,21 @@ Early websites were static — you could read them, but not interact with
 them. JavaScript was created to let pages respond to the user directly, in
 the browser, without needing to ask a server and reload the whole page for
 every small change.
+    `.trim(),
+    whenToUse: `
+Reach for JavaScript when you're building something that needs to run in a
+web browser and react to the user right away — validating a form as someone
+types, updating a page without reloading it, or building an entire
+single-page app. It's also a reasonable choice for the server side (via
+Node.js) if you'd rather use one language for both the client and the
+server.
+    `.trim(),
+    whenNotToUse: `
+If you're building something CPU-heavy — video processing, machine
+learning, low-level system code — JavaScript usually isn't the first
+choice; languages built for that kind of raw performance (C++, Rust, Go)
+fit better. And a purely informational page with no interactivity at all
+may not need JavaScript beyond a tiny script, if any.
     `.trim(),
     commonMistakes: [
       "Thinking JavaScript and Java are related — they only share part of a name.",
@@ -113,6 +133,12 @@ const username = "amara";
 // username = "someone-else"; // ❌ this would cause an error`,
         explanation:
           "`score` can change because it's declared with `let`. `username` cannot be reassigned because it's declared with `const`.",
+        walkthrough: [
+          { code: "let score = 0;", explanation: "Creates a variable named score, starting at 0, that's allowed to change later." },
+          { code: "score = score + 10;", explanation: "Reads the current value of score, adds 10, and stores the result back in score." },
+          { code: 'const username = "amara";', explanation: "Creates a variable that cannot be reassigned after this line." },
+          { code: "// username = ...", explanation: "Commented out — uncommenting it would throw an error, since const variables can't be reassigned." },
+        ],
       },
     ],
     howItWorks: `
@@ -125,6 +151,18 @@ uses whatever value currently lives there.
 Without variables, you'd have to write the same literal values everywhere,
 and you'd have no way to store something that changes while the program
 runs — like a running total or the current user's name.
+    `.trim(),
+    whenToUse: `
+Use a variable any time you need to store a value so you can use it again
+later — a running total, a piece of user input, a flag that tracks whether
+something happened. Reach for \`const\` by default, and switch to \`let\` only
+once you know the value genuinely needs to change.
+    `.trim(),
+    whenNotToUse: `
+You don't need a variable for a value you use exactly once and never refer
+to again — sometimes it's clearer to just write the value directly where
+it's needed. And avoid \`var\` in new code: there's no situation in modern
+JavaScript where \`var\` behaves better than \`let\`/\`const\`.
     `.trim(),
     commonMistakes: [
       "Trying to reassign a `const` variable — it will throw an error.",
@@ -141,6 +179,7 @@ runs — like a running total or the current user's name.
       { question: "Why avoid `var` in modern code?", answer: "`var` has confusing scoping rules (it ignores block scope) that can lead to subtle bugs. `let` and `const` are scoped to the block they're declared in." },
       { question: "Can a `const` object's properties change?", answer: "Yes — `const` only prevents reassigning the variable itself, not mutating the contents of an object or array it points to." },
     ],
+    prerequisites: ["what-is-javascript"],
     relatedTopics: ["data-types", "scope"],
     keywords: ["let", "const", "var", "declaration"],
   },
@@ -173,6 +212,12 @@ console.log(typeof 42);        // "number"
 console.log(typeof true);      // "boolean"
 console.log(typeof undefined); // "undefined"`,
         explanation: "`typeof` is a built-in operator that tells you the data type of any value.",
+        walkthrough: [
+          { code: 'typeof "hello"', explanation: '"hello" is text, so typeof reports "string".' },
+          { code: "typeof 42", explanation: '42 is a number, so typeof reports "number".' },
+          { code: "typeof true", explanation: 'true/false values report "boolean".' },
+          { code: "typeof undefined", explanation: 'A variable with no value yet reports "undefined".' },
+        ],
       },
     ],
     howItWorks: `
@@ -185,6 +230,18 @@ adding two strings joins them together instead ("2" + "3" becomes "23", not
 Different kinds of data need different rules. Text needs to be joined and
 searched; numbers need to be added and compared; true/false values need to
 drive decisions. Types let the language apply the right rules automatically.
+    `.trim(),
+    whenToUse: `
+You actively think about data types whenever you're not sure what kind of
+value you're dealing with — checking user input, debugging an unexpected
+result, or deciding whether two values can be safely compared or combined.
+\`typeof\` is the quick way to check.
+    `.trim(),
+    whenNotToUse: `
+You don't need to manually check the type of a value you created yourself
+and already know the shape of — sprinkling \`typeof\` checks everywhere just
+adds noise. Save type-checking for boundaries: user input, API responses,
+and function arguments coming from code you don't control.
     `.trim(),
     commonMistakes: [
       "Mixing up a number and a string that looks like a number, e.g. `\"5\" + 1` gives `\"51\"`, not `6`.",
@@ -201,6 +258,7 @@ drive decisions. Types let the language apply the right rules automatically.
       { question: "What's the difference between `null` and `undefined`?", answer: "`undefined` means a variable hasn't been given a value yet. `null` is a value a developer sets deliberately to represent 'nothing here'." },
       { question: "What does `typeof null` return, and why is that surprising?", answer: "It returns `\"object\"`, which is a long-standing quirk/bug in JavaScript kept for backward compatibility." },
     ],
+    prerequisites: ["variables"],
     relatedTopics: ["variables", "operators"],
     keywords: ["types", "string", "number", "boolean", "typeof"],
   },
@@ -228,6 +286,11 @@ A few groups you'll use daily:
         code: `const total = 10 + 5;      // 15
 const isEqual = 10 === 10; // true
 const isBigger = 10 > 20;  // false`,
+        walkthrough: [
+          { code: "const total = 10 + 5;", explanation: "Adds 10 and 5, storing 15 in total." },
+          { code: "const isEqual = 10 === 10;", explanation: "Compares 10 to 10 with strict equality, storing true." },
+          { code: "const isBigger = 10 > 20;", explanation: "Checks whether 10 is greater than 20, storing false." },
+        ],
       },
     ],
     howItWorks: `
@@ -238,6 +301,18 @@ and produces a boolean — true if they match exactly, false otherwise.
     whyItExists: `
 Programs constantly need to calculate, compare, and combine values to make
 decisions. Operators are the basic building blocks for all of that logic.
+    `.trim(),
+    whenToUse: `
+Use arithmetic operators whenever your code needs to calculate something,
+and comparison operators whenever it needs to make a decision. Logical
+operators (\`&&\`, \`||\`) come in whenever that decision depends on more than
+one condition at once.
+    `.trim(),
+    whenNotToUse: `
+Avoid \`==\` in new code — its type-converting comparisons cause more bugs
+than they prevent; \`===\` should be your default. And don't chain more
+logical operators into one expression than a reader can parse at a glance —
+split a complex condition into a well-named variable instead.
     `.trim(),
     commonMistakes: [
       "Using `=` (assignment) when you meant `===` (comparison).",
@@ -254,6 +329,7 @@ decisions. Operators are the basic building blocks for all of that logic.
       { question: "What does the `%` operator do?", answer: "It returns the remainder of a division — often used to check divisibility, like testing if a number is even." },
       { question: "What is short-circuit evaluation?", answer: "With `&&` and `||`, JavaScript stops evaluating as soon as the result is known — e.g. in `a || b`, if `a` is truthy, `b` is never evaluated." },
     ],
+    prerequisites: ["data-types"],
     relatedTopics: ["data-types", "conditions"],
     keywords: ["arithmetic", "comparison", "logical", "equality"],
   },
@@ -285,6 +361,12 @@ if (hour < 12) {
   console.log("Good evening");
 }
 // logs: "Good afternoon"`,
+        walkthrough: [
+          { code: "const hour = 14;", explanation: "Stores the current hour." },
+          { code: "if (hour < 12)", explanation: "Checks whether it's before noon — it isn't, so this block is skipped." },
+          { code: "} else if (hour < 18) {", explanation: "Only checked because the first condition was false; checks whether it's before 6pm — it is, so this block runs." },
+          { code: "} else {", explanation: "Would run only if neither condition above matched." },
+        ],
       },
     ],
     howItWorks: `
@@ -307,6 +389,19 @@ A program that always does the exact same thing regardless of input isn't
 very useful. Conditions let code adapt its behavior to the current data or
 situation.
     `.trim(),
+    whenToUse: `
+Use conditions whenever your program's next step depends on data you don't
+know in advance — a user's input, a value from an API, the current time.
+Anytime you can describe your logic with the word "if," you're describing
+a condition.
+    `.trim(),
+    whenNotToUse: `
+If every branch of an \`if/else\` ends up doing almost the same thing, a
+condition may be hiding a simpler solution — like a lookup object or a
+default value — that avoids repeating yourself. And a \`switch\` (or a
+lookup) usually reads better than five or more chained \`else if\` blocks
+checking the same variable.
+    `.trim(),
     commonMistakes: [
       "Forgetting the `else` and assuming a variable is always set inside the `if` block.",
       "Using `=` instead of `===` inside a condition by accident.",
@@ -322,6 +417,7 @@ situation.
       { question: "When would you use `switch` instead of `if/else`?", answer: "When you're comparing one value against many specific possibilities — it can be more readable than a long `else if` chain." },
       { question: "What is a ternary operator?", answer: "A compact one-line conditional: `condition ? valueIfTrue : valueIfFalse`, useful for simple either/or expressions." },
     ],
+    prerequisites: ["operators"],
     relatedTopics: ["operators", "loops"],
     keywords: ["if", "else", "switch", "ternary", "truthy", "falsy"],
   },
@@ -352,6 +448,12 @@ The two you'll use most:
 // logs 1, 2, 3, 4, 5`,
         explanation:
           "`i = 1` sets the start, `i <= 5` is the condition checked before each run, and `i++` increases `i` after each run.",
+        walkthrough: [
+          { code: "let i = 1", explanation: "Runs once, before the loop starts: creates a counter starting at 1." },
+          { code: "i <= 5", explanation: "Checked before every pass — the loop keeps going as long as this is true." },
+          { code: "console.log(i);", explanation: "The part that actually repeats — prints the current value of i." },
+          { code: "i++", explanation: "Runs after every pass, increasing i by 1 before the condition is checked again." },
+        ],
       },
       {
         title: "A while loop",
@@ -383,6 +485,19 @@ Loops let you write one small block of logic and apply it to many items or
 many repetitions, instead of duplicating code — which would be both tedious
 and hard to change later.
     `.trim(),
+    whenToUse: `
+Use a loop whenever you need to repeat the same action for every item in a
+collection, or repeat something an unknown number of times until a
+condition is met — processing a list, retrying a request, counting down a
+timer.
+    `.trim(),
+    whenNotToUse: `
+If you already know you only need to do something a fixed, small number of
+times, a loop can be overkill — a couple of plain repeated statements are
+sometimes clearer. And for common patterns like transforming every item in
+an array, methods like \`.map()\` and \`.filter()\` are usually more readable
+than a manual loop.
+    `.trim(),
     commonMistakes: [
       "Forgetting to update the loop variable, causing an infinite loop (e.g. forgetting `i++`).",
       "Using `<=` vs `<` incorrectly and running one extra or one fewer time than intended (an 'off-by-one' error).",
@@ -398,6 +513,7 @@ and hard to change later.
       { question: "What causes an infinite loop?", answer: "A loop whose condition never becomes false — usually because the loop variable is never updated, or the update happens on the wrong path." },
       { question: "What do `break` and `continue` do?", answer: "`break` exits the loop immediately. `continue` skips the rest of the current iteration and moves to the next one." },
     ],
+    prerequisites: ["conditions"],
     relatedTopics: ["conditions", "functions", "arrays"],
     keywords: ["for", "while", "iteration", "break", "continue"],
   },
@@ -428,6 +544,12 @@ const result = add(2, 3);
 console.log(result); // 5`,
         explanation:
           "`add` takes two parameters, `a` and `b`, and returns their sum. Calling `add(2, 3)` runs that code with `a = 2` and `b = 3`.",
+        walkthrough: [
+          { code: "function add(a, b) {", explanation: "Defines a function named add that expects two inputs, a and b." },
+          { code: "return a + b;", explanation: "Sends the sum of a and b back to wherever add was called." },
+          { code: "}", explanation: "Marks the end of the function's code." },
+          { code: "const result = add(2, 3);", explanation: "Calls add with 2 and 3, storing the returned value (5) in result." },
+        ],
       },
       {
         title: "Arrow function shorthand",
@@ -446,6 +568,19 @@ Functions let you name a piece of logic once and reuse it anywhere, which
 keeps code shorter, easier to test, and easier to change — you only fix a
 bug in one place instead of everywhere it was copy-pasted.
     `.trim(),
+    whenToUse: `
+Write a function any time you find yourself about to write the same few
+lines of logic more than once, or whenever a chunk of code does one clear,
+nameable thing — validating an email, calculating a total, formatting a
+date.
+    `.trim(),
+    whenNotToUse: `
+Don't wrap a single line you only use once in its own function just for
+the sake of it — that can add an extra layer of indirection without any
+real benefit. And if a function is trying to do five unrelated things,
+that's usually a sign it should be split into several smaller, focused
+functions instead.
+    `.trim(),
     commonMistakes: [
       "Forgetting to `return` a value and expecting the function to give one back automatically.",
       "Confusing a function's parameters (the placeholders) with arguments (the actual values passed in).",
@@ -461,6 +596,7 @@ bug in one place instead of everywhere it was copy-pasted.
       { question: "What happens if a function has no `return` statement?", answer: "It implicitly returns `undefined`." },
       { question: "What's the difference between a function declaration and an arrow function?", answer: "Besides shorter syntax, arrow functions don't have their own `this` — they use `this` from the surrounding code, which matters in object methods and callbacks." },
     ],
+    prerequisites: ["loops"],
     relatedTopics: ["arrays", "scope"],
     keywords: ["parameters", "arguments", "return", "arrow function"],
   },

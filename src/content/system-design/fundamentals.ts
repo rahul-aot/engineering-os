@@ -43,6 +43,19 @@ million — slow responses, crashes, lost data. System design exists to
 think through those problems *before* they happen, and to make deliberate,
 informed trade-offs instead of accidental ones.
     `.trim(),
+    whenToUse: `
+Reach for system-design thinking whenever you're planning something
+bigger than a single script — choosing how services, data, and traffic
+should be organized before (or while) you build, especially once more
+than one person or more than a handful of users will depend on it.
+    `.trim(),
+    whenNotToUse: `
+For a small script, a personal tool, or a prototype nobody else depends
+on yet, heavy system design is overkill — you'd spend more time planning
+for scale you don't have than actually building. Start simple, and bring
+in system design as real constraints (more users, more data, more
+reliability needs) show up.
+    `.trim(),
     commonMistakes: [
       "Jumping straight to specific technologies before understanding the actual requirements and constraints.",
       "Designing only for the current scale and ignoring how the system would need to change if usage grew 100x.",
@@ -89,6 +102,12 @@ fetch("https://api.example.com/users/1")
 // Server receives the request, looks up the data,
 // and sends back something like:
 // { "id": 1, "name": "Amara" }`,
+        walkthrough: [
+          { code: 'fetch("https://api.example.com/users/1")', explanation: "The client sends a request asking for user #1." },
+          { code: ".then((response) => response.json())", explanation: "Once a response arrives, parses its body as JSON." },
+          { code: ".then((user) => console.log(user));", explanation: "Uses the data the server sent back." },
+          { code: "// Server receives the request...", explanation: "The server does its own work on its own machine, entirely out of the client's sight." },
+        ],
       },
     ],
     howItWorks: `
@@ -112,6 +131,17 @@ smart TVs) share the same server and data, without each device needing to
 store and manage everything itself. It also lets the server be updated or
 scaled independently of the apps that use it.
     `.trim(),
+    whenToUse: `
+This model applies to essentially any networked application — web apps,
+mobile apps, games with online features — any time one program needs data
+or processing that lives somewhere else.
+    `.trim(),
+    whenNotToUse: `
+A fully offline tool that never talks to another machine doesn't need a
+client-server split at all. And for something genuinely tiny and local,
+introducing a whole separate server just adds operational complexity with
+no real benefit.
+    `.trim(),
     commonMistakes: [
       "Assuming the client can be trusted — a server should always re-check anything important, since clients can be modified by users.",
       "Forgetting that a request/response trip takes real time (network latency), which affects how responsive an app feels.",
@@ -127,6 +157,7 @@ scaled independently of the apps that use it.
       { question: "Why shouldn't a server trust data coming from the client?", answer: "Because client-side code and requests can be modified or forged by anyone, so the server must independently validate anything security- or business-critical." },
       { question: "What is latency, in the context of client-server communication?", answer: "The time it takes for a request to travel to the server and for the response to travel back — a key factor in how fast an app feels." },
     ],
+    prerequisites: ["what-is-system-design"],
     relatedTopics: ["http", "rest-apis"],
     keywords: ["client", "server", "request", "response", "latency"],
   },
@@ -157,6 +188,12 @@ Content-Type: application/json
 { "id": 1, "name": "Amara" }`,
         explanation:
           "`GET /users/1` asks for user #1. The server replies with a status code (`200 OK` means success) and the requested data.",
+        walkthrough: [
+          { code: "GET /users/1 HTTP/1.1", explanation: "The method (GET) and path (/users/1) — this request asks to read user #1." },
+          { code: "Host: api.example.com", explanation: "A header telling the server which website/host this request is meant for." },
+          { code: "HTTP/1.1 200 OK", explanation: "The response's status line — 200 means the request succeeded." },
+          { code: '{ "id": 1, "name": "Amara" }', explanation: "The response body — the actual data that was requested." },
+        ],
       },
     ],
     howItWorks: `
@@ -171,6 +208,16 @@ Without a shared protocol, every client and server pair would need its own
 custom way of communicating — nothing on the web would be interoperable.
 HTTP gives every browser, app, and server a common language, which is why
 the web works at all.
+    `.trim(),
+    whenToUse: `
+You're using HTTP any time a browser, app, or script talks to a web
+server — which is most of the time a client-server application
+communicates at all.
+    `.trim(),
+    whenNotToUse: `
+For very high-frequency, low-latency communication — real-time games,
+some financial trading systems — raw HTTP's overhead can be too much;
+protocols like WebSockets or dedicated binary protocols fit better there.
     `.trim(),
     commonMistakes: [
       "Confusing HTTP status code categories, e.g. thinking all 4xx codes mean 'server error' (they mean client error; 5xx means server error).",
@@ -187,6 +234,7 @@ the web works at all.
       { question: "What does it mean that HTTP is stateless?", answer: "Each request is handled independently — the server doesn't automatically remember anything about previous requests from the same client unless extra mechanisms (cookies, tokens, sessions) are used." },
       { question: "What's the difference between GET and POST?", answer: "GET requests data without changing anything on the server (and can be cached); POST typically sends data to create or change something on the server." },
     ],
+    prerequisites: ["client-and-server"],
     relatedTopics: ["client-and-server", "rest-apis"],
     keywords: ["http", "protocol", "status code", "method", "stateless"],
   },
@@ -220,6 +268,13 @@ PATCH  /posts/42    // partially update post 42
 DELETE /posts/42    // delete post 42`,
         explanation:
           "Notice the URL identifies *what* you're acting on (a post, or a specific one), and the HTTP method identifies *what action* you're taking.",
+        walkthrough: [
+          { code: "GET /posts", explanation: "Reads the full list of posts." },
+          { code: "GET /posts/42", explanation: "Reads one specific post, identified by its id in the URL." },
+          { code: "POST /posts", explanation: "Creates a new post." },
+          { code: "PUT /posts/42  /  PATCH /posts/42", explanation: "Replaces post 42 entirely, or partially updates just some of its fields." },
+          { code: "DELETE /posts/42", explanation: "Removes post 42." },
+        ],
       },
     ],
     howItWorks: `
@@ -233,6 +288,17 @@ Before conventions like REST became common, every API had its own bespoke
 rules, making integration slow and error-prone. REST gives teams a shared
 set of conventions, which speeds up building and consuming APIs across
 completely different companies and codebases.
+    `.trim(),
+    whenToUse: `
+Reach for REST conventions when you're designing a general-purpose API
+for resources (users, posts, products) that other developers — possibly
+outside your team — will need to learn and use.
+    `.trim(),
+    whenNotToUse: `
+For very specific, action-oriented operations that don't map cleanly to
+a resource (like "run this report" or "send this batch job"), forcing a
+REST shape can feel awkward — an RPC-style or GraphQL API sometimes fits
+better.
     `.trim(),
     commonMistakes: [
       "Using verbs in URLs (`/getUser`) instead of nouns with proper HTTP methods (`GET /user`).",
@@ -249,6 +315,7 @@ completely different companies and codebases.
       { question: "What makes an API 'RESTful'?", answer: "Using resource-based URLs, standard HTTP methods for actions, standard status codes for outcomes, and being stateless between requests." },
       { question: "What's the difference between PUT and PATCH?", answer: "PUT typically replaces an entire resource; PATCH applies a partial update, changing only the specified fields." },
     ],
+    prerequisites: ["http"],
     relatedTopics: ["http", "client-and-server", "databases"],
     keywords: ["REST", "API", "endpoint", "resource", "CRUD"],
   },

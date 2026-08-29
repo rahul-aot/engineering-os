@@ -36,6 +36,13 @@ first.next = second; // 10 → 20
 
 console.log(first.value);      // 10
 console.log(first.next.value); // 20`,
+        walkthrough: [
+          { code: "class Node { constructor(value) {...} }", explanation: "Defines the basic building block: a value plus a pointer to the next node." },
+          { code: "const first = new Node(10);", explanation: "Creates the first node, holding the value 10." },
+          { code: "const second = new Node(20);", explanation: "Creates a second, separate node, holding 20." },
+          { code: "first.next = second;", explanation: "Links them together — first now points to second." },
+          { code: "first.next.value", explanation: "Follows the pointer from first to reach second's value." },
+        ],
       },
     ],
     howItWorks: `
@@ -56,6 +63,18 @@ Linked lists shine when your program does a lot of inserting and removing
 access by position. They're also the foundation for other structures, like
 stacks and queues.
     `.trim(),
+    whenToUse: `
+Reach for a linked list when your program does a lot of inserting and
+removing — especially at the front or in the middle of a collection — and
+doesn't need to jump to an arbitrary position by index.
+    `.trim(),
+    whenNotToUse: `
+If you need frequent random access by index (get the 500th item), a
+linked list is a poor fit — that's O(n) here, versus O(1) for an array. In
+practice, plain arrays cover most everyday JavaScript needs; reach for a
+linked list mainly when building another structure (a queue, a stack) or
+solving a problem that specifically calls for one.
+    `.trim(),
     commonMistakes: [
       "Forgetting to update the `next` pointer when inserting a node, accidentally breaking the chain.",
       "Losing the reference to the rest of the list by overwriting a `next` pointer before saving it elsewhere.",
@@ -71,6 +90,7 @@ stacks and queues.
       { question: "What is a node?", answer: "The basic unit of a linked list — an object holding a value and a pointer (or pointers) to neighboring nodes." },
       { question: "What's the difference between a singly and doubly linked list?", answer: "A singly linked list's nodes only point to the next node; a doubly linked list's nodes point to both the next and the previous node, allowing traversal in both directions." },
     ],
+    prerequisites: ["arrays"],
     relatedTopics: ["arrays", "stack", "queue"],
     keywords: ["linked list", "node", "pointer", "traversal"],
   },
@@ -103,6 +123,12 @@ console.log(stack.pop()); // 3 — removes and returns the top item
 console.log(stack);       // [1, 2]`,
         explanation:
           "`push` and `pop` both operate on the end of the array, which is exactly how a stack behaves — no special data structure is required in JavaScript.",
+        walkthrough: [
+          { code: "const stack = [];", explanation: "An empty array, used here as a stack." },
+          { code: "stack.push(1);", explanation: "Adds 1 to the top." },
+          { code: "stack.push(2); stack.push(3);", explanation: "Adds 2, then 3 — 3 is now on top." },
+          { code: "stack.pop();", explanation: "Removes and returns the top item, 3, leaving [1, 2]." },
+        ],
       },
     ],
     howItWorks: `
@@ -121,6 +147,17 @@ Many real problems are naturally last-in-first-out: undo/redo history,
 tracking function calls (the call stack!), and checking that brackets or
 parentheses are balanced. A stack models that behavior directly and simply.
     `.trim(),
+    whenToUse: `
+Reach for a stack whenever the most recent thing needs to come out first
+— undo history, matching brackets or parentheses, or tracking a path
+while backtracking through a maze or a tree.
+    `.trim(),
+    whenNotToUse: `
+If you need to process items in the order they arrived (not the
+reverse), you want a queue, not a stack. And if you need to inspect or
+remove an item from the middle regularly, a stack's "only touch the top"
+rule will fight you.
+    `.trim(),
     commonMistakes: [
       "Trying to access the middle of a stack directly instead of popping down to it.",
       "Popping from an empty stack without checking first, causing errors or `undefined`.",
@@ -136,6 +173,7 @@ parentheses are balanced. A stack models that behavior directly and simply.
       { question: "What is a real-world use of a stack in programming?", answer: "The call stack itself, which tracks function calls; also undo/redo features and balanced-bracket checking." },
       { question: "What's the time complexity of push and pop?", answer: "Both are O(1) — they only ever touch the top item." },
     ],
+    prerequisites: ["linked-lists"],
     relatedTopics: ["queue", "recursion", "linked-lists"],
     keywords: ["stack", "LIFO", "push", "pop", "call stack"],
   },
@@ -166,6 +204,12 @@ console.log(queue.shift()); // "first" — removes and returns the front item
 console.log(queue);         // ["second"]`,
         explanation:
           "`push` adds to the back; `shift` removes from the front — together they behave like a queue. Note that `shift` is O(n) on a plain array since every remaining item shifts down.",
+        walkthrough: [
+          { code: "const queue = [];", explanation: "An empty array, used here as a queue." },
+          { code: 'queue.push("first");', explanation: 'Adds "first" to the back.' },
+          { code: 'queue.push("second");', explanation: 'Adds "second" to the back, behind "first".' },
+          { code: "queue.shift();", explanation: 'Removes and returns the front item, "first", leaving ["second"].' },
+        ],
       },
     ],
     howItWorks: `
@@ -185,6 +229,17 @@ Queues naturally model anything processed in arrival order: task
 scheduling, message processing, handling requests in the order they came
 in, and breadth-first traversal of trees and graphs.
     `.trim(),
+    whenToUse: `
+Reach for a queue whenever things must be handled in the exact order
+they arrived — a task queue, a message queue, print jobs, or breadth-first
+traversal of a tree or graph.
+    `.trim(),
+    whenNotToUse: `
+If the most recent item should be handled first instead of the oldest,
+you want a stack, not a queue. And for a high-throughput queue in real
+code, avoid a plain array's \`.shift()\` — reach for a linked-list-based
+queue or a dedicated library instead.
+    `.trim(),
     commonMistakes: [
       "Confusing a queue's FIFO order with a stack's LIFO order.",
       "Using `.shift()` on a large array in performance-sensitive code without realizing it's O(n), not O(1).",
@@ -200,6 +255,7 @@ in, and breadth-first traversal of trees and graphs.
       { question: "What's a real-world use of a queue in software?", answer: "Task/job scheduling, request handling, and breadth-first search over trees and graphs." },
       { question: "Why is `.shift()` on a JavaScript array not ideal for a high-performance queue?", answer: "Because it's O(n) — every remaining element has to move down by one index. A linked-list-based queue keeps both ends O(1)." },
     ],
+    prerequisites: ["stack"],
     relatedTopics: ["stack", "linked-lists"],
     keywords: ["queue", "FIFO", "enqueue", "dequeue"],
   },
@@ -231,6 +287,12 @@ console.log(ages["amara"]); // 28 — near-instant lookup, not a search
 const map = new Map();
 map.set("amara", 28);
 console.log(map.get("amara")); // 28`,
+        walkthrough: [
+          { code: "const ages = {};", explanation: "An empty object, used here as a hash table." },
+          { code: 'ages["amara"] = 28;', explanation: 'Stores 28 under the key "amara".' },
+          { code: 'ages["diego"] = 34;', explanation: "Stores 34 under a different key." },
+          { code: 'ages["amara"]', explanation: 'Jumps directly to the slot for "amara" — no scanning required.' },
+        ],
       },
     ],
     howItWorks: `
@@ -254,6 +316,17 @@ average — O(1) — which makes them essential for counting frequencies,
 caching results, deduplicating data, and implementing sets and dictionaries
 efficiently.
     `.trim(),
+    whenToUse: `
+Reach for a hash table (object or Map) whenever you need to look
+something up by a key quickly — counting occurrences, checking for
+duplicates, caching results, or building a dictionary of any kind.
+    `.trim(),
+    whenNotToUse: `
+If order matters and you need to process items in a specific sequence, a
+hash table doesn't guarantee position the way an array does. And for a
+small, fixed handful of values, just checking each one directly can beat
+setting up a hash table at all.
+    `.trim(),
     commonMistakes: [
       "Assuming object/array key order is always guaranteed in every situation — it mostly is in modern JavaScript for string keys, but it's a detail worth knowing rather than relying on blindly.",
       "Using an object when a `Map` would be safer, e.g. when keys aren't simple strings or when key order and size (`.size`) matter.",
@@ -269,6 +342,7 @@ efficiently.
       { question: "What is the average time complexity of a hash table lookup?", answer: "O(1) on average, since the hash function typically jumps directly to the right slot." },
       { question: "What is a hash collision, and how is it handled?", answer: "A collision happens when two different keys hash to the same slot. It's commonly handled by storing multiple entries at that slot (e.g. in a small list) and checking each one." },
     ],
+    prerequisites: ["arrays"],
     relatedTopics: ["arrays", "strings", "big-o"],
     keywords: ["hash table", "hash map", "hash function", "collision", "dictionary"],
   },
@@ -300,6 +374,11 @@ recursion, and a step that reduces the problem toward that base case.
 console.log(factorial(4)); // 4 * 3 * 2 * 1 = 24`,
         explanation:
           "Each call reduces `n` by 1 and calls itself again, until `n` reaches 1 — the base case — at which point the calls start returning back up the chain.",
+        walkthrough: [
+          { code: "function factorial(n) {", explanation: "Defines a function that will call itself." },
+          { code: "if (n <= 1) return 1;", explanation: "The base case — stops the recursion once n is small enough." },
+          { code: "return n * factorial(n - 1);", explanation: "The recursive case — multiplies n by the result of solving a smaller version of the same problem." },
+        ],
       },
     ],
     howItWorks: `
@@ -325,6 +404,17 @@ mathematical definitions) are naturally recursive — describing them without
 recursion often requires extra bookkeeping that a recursive function
 handles automatically through the call stack.
     `.trim(),
+    whenToUse: `
+Reach for recursion when a problem is naturally defined in terms of a
+smaller version of itself — traversing nested folders, walking a tree, or
+classic divide-and-conquer algorithms like merge sort.
+    `.trim(),
+    whenNotToUse: `
+For a problem that's really just "do this N times in a row" (like
+summing a flat array), a loop is usually clearer and avoids the memory
+cost of piling up function calls on the stack. Watch recursion depth on
+very large inputs — too many nested calls can overflow the call stack.
+    `.trim(),
     commonMistakes: [
       "Forgetting the base case, causing infinite recursion until the program crashes ('stack overflow').",
       "Writing a recursive case that doesn't actually move closer to the base case.",
@@ -340,6 +430,7 @@ handles automatically through the call stack.
       { question: "What causes a 'stack overflow' in recursion?", answer: "Recursing too deeply (or infinitely, due to a missing/broken base case) fills up the call stack beyond its limit." },
       { question: "When would you prefer recursion over a loop?", answer: "When the problem is naturally recursive in structure — like traversing trees, nested data, or divide-and-conquer algorithms — where recursion reads more clearly than manual bookkeeping." },
     ],
+    prerequisites: ["stack"],
     relatedTopics: ["stack", "binary-search"],
     keywords: ["recursion", "base case", "call stack", "stack overflow"],
   },
@@ -379,6 +470,12 @@ million-item list in about 20 checks instead of a million.
 
   return -1; // not found
 }`,
+        walkthrough: [
+          { code: "let low = 0; let high = sortedArray.length - 1;", explanation: "Marks the current search range — the whole array, to start." },
+          { code: "const mid = Math.floor((low + high) / 2);", explanation: "Picks the middle index of the current range." },
+          { code: "if (sortedArray[mid] === target) return mid;", explanation: "Found it — return immediately." },
+          { code: "low = mid + 1; / high = mid - 1;", explanation: "Narrows the range to whichever half could still contain the target." },
+        ],
       },
     ],
     howItWorks: `
@@ -399,6 +496,17 @@ choice matters: the same problem, solved with a smarter approach on sorted
 data, goes from O(n) to O(log n) — a difference that becomes enormous as
 data grows.
     `.trim(),
+    whenToUse: `
+Reach for binary search whenever you're repeatedly searching a large,
+sorted collection — it turns an O(n) scan into an O(log n) lookup, which
+matters a lot once the data gets big.
+    `.trim(),
+    whenNotToUse: `
+If your data isn't sorted and can't easily be kept sorted, binary search
+doesn't apply — sorting it first costs more than a single linear search
+would. And for a very small list, the overhead of tracking low/high/mid
+isn't worth it over just checking each item.
+    `.trim(),
     commonMistakes: [
       "Using binary search on data that isn't sorted — it silently gives wrong answers instead of erroring.",
       "Getting the `low`/`high` update backwards, causing an infinite loop or skipped elements.",
@@ -414,6 +522,7 @@ data grows.
       { question: "What is the time complexity of binary search?", answer: "O(log n), since each step cuts the remaining search space in half." },
       { question: "Why is O(log n) so much better than O(n) for large inputs?", answer: "Because logarithmic growth is extremely slow — doubling the input only adds one more step, whereas linear growth doubles the work." },
     ],
+    prerequisites: ["arrays", "recursion"],
     relatedTopics: ["big-o", "arrays", "recursion"],
     keywords: ["binary search", "sorted array", "log n", "divide and conquer"],
   },
