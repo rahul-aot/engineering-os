@@ -245,7 +245,7 @@ class WordDictionary {
   }
 
   search(word) {
-    // Recursively tries to match word[i..] starting at trie node `node`.
+    // Recursively tries to match word[i..] starting at trie node \`node\`.
     const dfs = (node, i) => {
       if (node === null) return false;
       if (i === word.length) return node.isWord;
