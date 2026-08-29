@@ -34,22 +34,23 @@ function NavRow({
     <ListItemButton
       selected={active}
       onClick={onClick}
-      sx={{
-        borderRadius: 1,
-        mb: 0.25,
-        "&.Mui-selected": {
-          bgcolor: (theme) =>
-            theme.palette.mode === "dark"
-              ? "rgba(96, 165, 250, 0.16)"
-              : "rgba(37, 99, 235, 0.08)",
-          "&:hover": {
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark"
-                ? "rgba(96, 165, 250, 0.22)"
-                : "rgba(37, 99, 235, 0.12)",
+      sx={[
+        {
+          borderRadius: 1,
+          mb: 0.25,
+          "&.Mui-selected": {
+            bgcolor: "rgba(37, 99, 235, 0.08)",
+            "&:hover": { bgcolor: "rgba(37, 99, 235, 0.12)" },
           },
         },
-      }}
+        (theme) =>
+          theme.applyStyles("dark", {
+            "&.Mui-selected": {
+              bgcolor: "rgba(96, 165, 250, 0.16)",
+              "&:hover": { bgcolor: "rgba(96, 165, 250, 0.22)" },
+            },
+          }),
+      ]}
     >
       <ListItemIcon sx={{ minWidth: 36, color: active ? "primary.main" : "text.secondary" }}>
         {icon}

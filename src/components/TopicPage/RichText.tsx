@@ -25,14 +25,17 @@ function renderInline(line: string) {
         <Box
           key={i}
           component="code"
-          sx={{
-            fontFamily: CODE_FONT_STACK,
-            fontSize: "0.875em",
-            bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.100"),
-            px: 0.6,
-            py: 0.1,
-            borderRadius: 0.75,
-          }}
+          sx={[
+            {
+              fontFamily: CODE_FONT_STACK,
+              fontSize: "0.875em",
+              bgcolor: "grey.100",
+              px: 0.6,
+              py: 0.1,
+              borderRadius: 0.75,
+            },
+            (theme) => theme.applyStyles("dark", { bgcolor: "grey.800" }),
+          ]}
         >
           {part.slice(1, -1)}
         </Box>
