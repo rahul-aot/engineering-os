@@ -30,6 +30,12 @@ function pickServer() {
 // Requests get spread evenly: server-1, server-2, server-3, server-1, ...`,
         explanation:
           "This is a simplified version of 'round robin' — one of several strategies real load balancers use to distribute traffic.",
+        walkthrough: [
+          { code: "const servers = [...]; let next = 0;", explanation: "Keeps a list of servers and tracks which one is up next." },
+          { code: "function pickServer() {", explanation: "Called once per incoming request to decide where it should go." },
+          { code: "const server = servers[next];", explanation: "Picks the current server in the rotation." },
+          { code: "next = (next + 1) % servers.length;", explanation: "Advances to the next server, wrapping back to the start after the last one." },
+        ],
       },
     ],
     howItWorks: `
@@ -53,6 +59,17 @@ server — expensive, and still a single point of failure. Load balancing
 lets you add ordinary servers as traffic grows, and keeps the system
 running even if one individual server fails.
     `.trim(),
+    whenToUse: `
+Reach for a load balancer the moment a single server can no longer handle
+your traffic reliably, or when you want to survive one server failing
+without the whole application going down.
+    `.trim(),
+    whenNotToUse: `
+A single small server serving a low-traffic app doesn't need a load
+balancer yet — it adds infrastructure and cost for a problem you don't
+have. Add it when traffic or reliability requirements actually demand it,
+not preemptively for hypothetical scale.
+    `.trim(),
     commonMistakes: [
       "Treating the load balancer itself as unbreakable — it also needs redundancy, or it becomes a single point of failure.",
       "Ignoring 'sticky sessions' concerns when a user's data is only stored on the specific server that first handled them.",
@@ -68,6 +85,7 @@ running even if one individual server fails.
       { question: "What is a health check in load balancing?", answer: "A periodic check the load balancer performs on each server to confirm it's still responsive, so it can stop routing traffic to unhealthy servers." },
       { question: "Can a load balancer itself be a single point of failure?", answer: "Yes — which is why production systems often run multiple load balancers with their own failover mechanism." },
     ],
+    prerequisites: ["caching"],
     relatedTopics: ["scalability", "caching", "queues"],
     keywords: ["load balancer", "round robin", "health check", "scaling"],
   },
@@ -103,6 +121,13 @@ queue.onMessage(async (job) => {
     await sendWelcomeEmail(job.userId);
   }
 });`,
+        walkthrough: [
+          { code: 'app.post("/signup", async (req, res) => {', explanation: "Handles an incoming signup request." },
+          { code: "await createUser(req.body);", explanation: "Does the essential work the user is actually waiting for." },
+          { code: 'await queue.push({ type: "welcome-email", ... });', explanation: "Hands off the slow, non-essential part to the queue instead of doing it right now." },
+          { code: 'res.send("Signed up!");', explanation: "Responds to the user immediately, without waiting for the email to send." },
+          { code: "queue.onMessage(async (job) => {...})", explanation: "A separate worker picks up and processes that queued job whenever it's able to." },
+        ],
       },
     ],
     howItWorks: `
@@ -121,6 +146,19 @@ work," which keeps user-facing responses fast, smooths out sudden spikes
 in traffic, and makes it easier to retry failed work without affecting the
 original request.
     `.trim(),
+    whenToUse: `
+Reach for a queue whenever a request triggers work that doesn't need to
+finish before responding to the user — sending an email, processing an
+upload, generating a report — especially work that's slow or occasionally
+fails and needs retrying.
+    `.trim(),
+    whenNotToUse: `
+Don't queue work the user is actively waiting to see the result of right
+now — that just adds an unnecessary hop and delay. A queue also adds real
+operational complexity (workers to run, failures to monitor), so it's not
+worth reaching for until you actually have slow or bursty background work
+to offload.
+    `.trim(),
     commonMistakes: [
       "Putting time-sensitive, user-facing work into a queue when the user actually needs to see the result immediately.",
       "Not handling failures — a worker that crashes mid-task should allow the message to be retried, not silently lost.",
@@ -136,6 +174,7 @@ original request.
       { question: "What are 'producers' and 'consumers' in a queue system?", answer: "Producers add messages/jobs to the queue; consumers (workers) read and process those messages, usually independently and in parallel." },
       { question: "Why are queues useful for reliability, not just speed?", answer: "Because a message can be safely retried if a worker fails partway through, instead of the work being lost entirely." },
     ],
+    prerequisites: ["load-balancing"],
     relatedTopics: ["load-balancing", "scalability"],
     keywords: ["message queue", "producer", "consumer", "worker", "async processing"],
   },
@@ -163,6 +202,10 @@ closest to them.
 
 // With a CDN:
 // User in Tokyo → nearby CDN server in Tokyo (already has a copy) → fast`,
+        walkthrough: [
+          { code: "// User in Tokyo → server in New York", explanation: "Without a CDN, every request travels the full distance to the one origin server." },
+          { code: "// User in Tokyo → nearby CDN server in Tokyo", explanation: "With a CDN, the request is served from a much closer copy instead — a shorter round trip." },
+        ],
       },
     ],
     howItWorks: `
@@ -177,6 +220,17 @@ CDNs dramatically reduce load times for users far from the origin server,
 and also reduce load on that origin server, since most requests are
 served from edge locations instead. They're especially valuable for
 content that doesn't change often, like images, videos, and static files.
+    `.trim(),
+    whenToUse: `
+Reach for a CDN when you're serving static assets — images, videos,
+JS/CSS bundles — to users spread across different geographic regions, and
+you want those assets to load quickly no matter where the user is.
+    `.trim(),
+    whenNotToUse: `
+Don't rely on a CDN for highly personalized or constantly-changing data —
+that's not what it's built to cache well. And if your entire user base is
+already geographically close to your one server, a CDN's main benefit
+(proximity) doesn't buy you much.
     `.trim(),
     commonMistakes: [
       "Using a CDN for highly personalized, frequently-changing data that isn't a good fit for caching.",
@@ -193,6 +247,7 @@ content that doesn't change often, like images, videos, and static files.
       { question: "What kind of content is best suited for a CDN?", answer: "Static, rarely-changing content like images, videos, stylesheets, and scripts — not highly personalized or constantly-changing data." },
       { question: "What is an 'edge location'?", answer: "One of many CDN servers distributed geographically, each holding cached copies of content to serve nearby users quickly." },
     ],
+    prerequisites: ["caching"],
     relatedTopics: ["caching", "scalability"],
     keywords: ["CDN", "edge location", "latency", "static content"],
   },
@@ -223,6 +278,12 @@ ceiling to how powerful one machine can get.
 
 // Horizontal scaling: same modest servers, more of them
 // 1 server → 10 servers, behind a load balancer`,
+        walkthrough: [
+          { code: "// Vertical scaling: same one server, upgraded hardware", explanation: "One machine gets more powerful over time." },
+          { code: "// 4 CPU cores, 8GB RAM → 32 CPU cores, 256GB RAM", explanation: "A concrete example — same server, much bigger specs." },
+          { code: "// Horizontal scaling: same modest servers, more of them", explanation: "Instead of one bigger machine, add more ordinary machines." },
+          { code: "// 1 server → 10 servers, behind a load balancer", explanation: "Traffic gets spread across all ten by a load balancer." },
+        ],
       },
     ],
     howItWorks: `
@@ -239,6 +300,18 @@ but a system that can't scale becomes slow, unreliable, or simply falls
 over exactly when it matters most: when it's finally popular. Designing
 for scalability from the start avoids painful, risky rewrites later.
     `.trim(),
+    whenToUse: `
+Think about scalability deliberately once real growth is a realistic
+near-term possibility — when you're designing a system you expect to
+succeed and need to handle meaningfully more users, data, or traffic than
+it does today.
+    `.trim(),
+    whenNotToUse: `
+Don't over-invest in horizontal scaling, statelessness, and distributed
+architecture for a prototype or an app with a small, known, stable user
+base — that complexity has a real cost, and premature scaling work is a
+common way projects get bogged down before they even ship.
+    `.trim(),
     commonMistakes: [
       "Only ever scaling vertically, until hitting the hard ceiling of the most powerful single machine available.",
       "Storing important state on an individual server (like data in memory) that horizontal scaling then breaks, since other servers don't have access to it.",
@@ -254,6 +327,7 @@ for scalability from the start avoids painful, risky rewrites later.
       { question: "Why do most large systems eventually favor horizontal scaling?", answer: "Because there's a physical and cost ceiling to how powerful a single machine can become, while adding more machines can, in principle, continue indefinitely." },
       { question: "Why is storing state only on one server a scalability problem?", answer: "Because other servers can't see that state, so requests must always be routed back to that specific server — breaking the flexibility that horizontal scaling relies on." },
     ],
+    prerequisites: ["load-balancing", "queues"],
     relatedTopics: ["load-balancing", "caching", "databases"],
     keywords: ["scalability", "vertical scaling", "horizontal scaling", "stateless"],
   },
