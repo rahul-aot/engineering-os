@@ -259,7 +259,7 @@ and function arguments coming from code you don't control.
       { question: "What does `typeof null` return, and why is that surprising?", answer: "It returns `\"object\"`, which is a long-standing quirk/bug in JavaScript kept for backward compatibility." },
     ],
     prerequisites: ["variables"],
-    relatedTopics: ["variables", "operators"],
+    relatedTopics: ["variables", "operators", "js-gotchas"],
     keywords: ["types", "string", "number", "boolean", "typeof"],
   },
   {
@@ -597,7 +597,7 @@ functions instead.
       { question: "What's the difference between a function declaration and an arrow function?", answer: "Besides shorter syntax, arrow functions don't have their own `this` — they use `this` from the surrounding code, which matters in object methods and callbacks." },
     ],
     prerequisites: ["loops"],
-    relatedTopics: ["arrays", "scope"],
+    relatedTopics: ["arrays", "scope", "callbacks", "higher-order-functions"],
     keywords: ["parameters", "arguments", "return", "arrow function"],
   },
 ];

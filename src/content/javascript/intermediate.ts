@@ -83,7 +83,7 @@ searching through an array.
       { question: "How do you check if a value exists in an array?", answer: "`array.includes(value)` returns true/false; `array.indexOf(value)` returns the position or -1 if not found." },
     ],
     prerequisites: ["functions"],
-    relatedTopics: ["objects", "loops"],
+    relatedTopics: ["objects", "loops", "array-methods"],
     keywords: ["array", "index", "push", "pop", "map", "filter", "reduce"],
   },
   {
@@ -163,7 +163,7 @@ And for very large collections you need to search by key constantly, a
       { question: "Why does copying an object with `=` sometimes cause bugs?", answer: "Objects are copied by reference, so both variables point to the same underlying object — changing one changes the other, unless you explicitly clone it." },
     ],
     prerequisites: ["arrays"],
-    relatedTopics: ["arrays", "scope", "prototypes"],
+    relatedTopics: ["arrays", "scope", "prototypes", "destructuring-and-spread", "map-and-set", "json"],
     keywords: ["object", "property", "key", "value", "dot notation"],
   },
   {
@@ -256,7 +256,7 @@ multiple places.
       { question: "How does scope relate to closures?", answer: "A closure is what happens when a function 'remembers' variables from its outer scope even after that outer scope has finished running." },
     ],
     prerequisites: ["functions"],
-    relatedTopics: ["functions", "closures"],
+    relatedTopics: ["functions", "closures", "modules"],
     keywords: ["lexical scope", "block scope", "scope chain", "global"],
   },
   {
@@ -355,7 +355,460 @@ closure just to avoid passing one extra parameter.
       { question: "What is lexical scope, and how does it relate to closures?", answer: "Lexical scope determines which variables a function can see based on where it's written in the code. Closures are the direct result of that: a function 'takes its scope with it' wherever it goes." },
     ],
     prerequisites: ["scope"],
-    relatedTopics: ["scope", "functions", "this"],
+    relatedTopics: ["scope", "functions", "this", "higher-order-functions"],
     keywords: ["closure", "lexical scope", "private state", "counter"],
+  },
+  {
+    id: "array-methods",
+    title: "Array Methods (forEach, map, filter, reduce...)",
+    level: "intermediate",
+    description: "The built-in tools for looping over, transforming, and summarizing arrays without writing manual loops.",
+    explanation: `
+You already know you can loop over an array with a \`for\` loop. But most of
+the time, what you're doing with that loop falls into one of a few common
+patterns: doing something with every item, building a new array from each
+item, keeping only some items, or combining everything into a single
+result. JavaScript gives you a built-in method for each of these patterns,
+so you don't have to write the loop by hand every time — and anyone
+reading your code recognizes the pattern from the method name alone.
+
+The core ones you'll use constantly:
+
+- **forEach** — run some code for every item (no new array)
+- **map** — build a new array by transforming every item
+- **filter** — build a new array keeping only items that pass a test
+- **find** — get the first item that passes a test
+- **some / every** — check if any / all items pass a test
+- **reduce** — combine every item into a single value
+    `.trim(),
+    analogy:
+      "Think of an assembly line. forEach is a worker who inspects every item and does something with it but hands nothing back. map is a worker who replaces every item with a new one. filter is a worker who only lets some items through. reduce is the worker at the very end who melts everything down into one final product.",
+    examples: [
+      {
+        title: "The core methods side by side",
+        code: `const numbers = [1, 2, 3, 4, 5];
+
+numbers.forEach((n) => console.log(n));          // prints each number, returns undefined
+
+const doubled = numbers.map((n) => n * 2);       // [2, 4, 6, 8, 10]
+
+const evens = numbers.filter((n) => n % 2 === 0); // [2, 4]
+
+const firstBig = numbers.find((n) => n > 3);     // 4
+
+const hasNegative = numbers.some((n) => n < 0);  // false
+const allPositive = numbers.every((n) => n > 0); // true
+
+const total = numbers.reduce((sum, n) => sum + n, 0); // 15`,
+        walkthrough: [
+          { code: "numbers.forEach((n) => console.log(n));", explanation: "Runs the callback once per item, purely for its side effect; forEach always returns undefined." },
+          { code: "numbers.map((n) => n * 2);", explanation: "Builds and returns a brand-new array, one output per input item." },
+          { code: "numbers.filter((n) => n % 2 === 0);", explanation: "Builds a new array containing only the items where the callback returned true." },
+          { code: "numbers.find((n) => n > 3);", explanation: "Stops as soon as it finds one matching item, and returns that item — not an array." },
+          { code: "numbers.reduce((sum, n) => sum + n, 0);", explanation: "Carries an accumulator (starting at 0) through every item, adding each one in turn." },
+        ],
+      },
+    ],
+    howItWorks: `
+Every one of these methods takes a callback function and calls it once
+per item, passing in the current item (and its index, and the whole
+array, if you need them). What differs is what each method does with the
+callback's return value: \`map\` collects it into a new array, \`filter\`
+uses it as a yes/no test, \`reduce\` feeds it back in as the accumulator
+for the next call, and \`forEach\` just throws it away.
+    `.trim(),
+    diagram: `
+[1, 2, 3].map(n => n * 2)
+
+  1 → callback(1) → 2  ┐
+  2 → callback(2) → 4  ├─▶ [2, 4, 6]
+  3 → callback(3) → 6  ┘
+    `.trim(),
+    whyItExists: `
+Loops are flexible, but that flexibility is also a liability — a plain
+\`for\` loop can accidentally skip items, mutate things it shouldn't, or
+hide what it's really doing under a pile of bookkeeping (\`let i = 0\`,
+\`i++\`...). Naming the pattern (map, filter, reduce) makes the intent of
+the code obvious at a glance, and removes an entire category of
+off-by-one and indexing bugs.
+    `.trim(),
+    whenToUse: `
+Reach for these whenever you're processing an array and your goal
+matches one of the patterns directly: transform every item (map), keep
+some of them (filter), summarize them into one value (reduce), or just
+do something with each one (forEach).
+    `.trim(),
+    whenNotToUse: `
+If you need to stop partway through for a more complex reason than
+"found it," or you need to loop over two arrays in lockstep, a plain
+\`for\`/\`for...of\` loop can be clearer than forcing it into one of these
+methods. And chaining many of these on a huge array does multiple full
+passes over the data — sometimes a single loop doing everything in one
+pass is more efficient.
+    `.trim(),
+    commonMistakes: [
+      "Using `forEach` when you actually wanted `map` — `forEach` always returns `undefined`, so `const result = arr.forEach(...)` is a common bug.",
+      "Forgetting to provide a starting value to `reduce`, which can throw or misbehave on an empty array.",
+      "Assuming `filter`/`map` modify the original array — they always return a brand-new array, leaving the original untouched.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Use `.map()` to turn an array of strings into an array of their lengths." },
+      { difficulty: "Medium", prompt: "Use `.filter()` and `.map()` together to get the names of all users older than 18 from an array of user objects." },
+      { difficulty: "Hard", prompt: "Reimplement `.map()` yourself as a function `myMap(array, callback)` using a plain `for` loop." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between `map` and `forEach`?", answer: "`map` returns a new array built from the callback's return values; `forEach` just runs the callback for its side effects and returns `undefined`." },
+      { question: "How does `reduce` work?", answer: "It runs a callback for each item, passing in an accumulator and the current item; whatever the callback returns becomes the accumulator for the next call, and the final accumulator is reduce's return value." },
+      { question: "Do these methods mutate the original array?", answer: "No — `map`, `filter`, `find`, `some`, `every`, and `reduce` all read the array without changing it; only a few methods like `push`, `pop`, `splice`, and `sort` mutate in place." },
+    ],
+    prerequisites: ["arrays", "functions"],
+    relatedTopics: ["arrays", "higher-order-functions", "callbacks"],
+    keywords: ["forEach", "map", "filter", "reduce", "find", "some", "every", "length", "array methods"],
+  },
+  {
+    id: "string-methods",
+    title: "String Methods",
+    level: "intermediate",
+    description: "The built-in tools for reading, searching, and reshaping text.",
+    explanation: `
+Text shows up everywhere in a program — a name, a message, a URL — and
+you constantly need to answer small questions about it: how long is it?
+does it contain this word? what does it look like in uppercase?
+JavaScript strings come with a large set of built-in methods that answer
+exactly these kinds of questions, so you rarely need to process text
+character-by-character yourself.
+
+A few you'll reach for constantly: \`length\` (a property, not a method,
+but just as essential), \`slice\`, \`includes\`, \`split\`, \`trim\`, \`replace\`,
+and template literals for building strings out of pieces.
+    `.trim(),
+    analogy:
+      "If a string is a train of connected train cars, string methods are the tools a train inspector carries — one to count the cars (length), one to pull out a section (slice), one to check if a car of a certain type exists (includes), one to uncouple the whole train into individual cars (split).",
+    examples: [
+      {
+        title: "Common string operations",
+        code: `const message = "  Hello, World!  ";
+
+console.log(message.length);            // 18 (includes the spaces)
+console.log(message.trim());            // "Hello, World!"
+console.log(message.includes("World")); // true
+console.log(message.toLowerCase());     // "  hello, world!  "
+
+const name = "Amara";
+console.log(\`Hi, \${name}!\`);             // "Hi, Amara!" — a template literal
+
+const parts = "2026-08-29".split("-");  // ["2026", "08", "29"]`,
+        walkthrough: [
+          { code: "message.length", explanation: "Counts every character, including the spaces at the start and end." },
+          { code: "message.trim()", explanation: "Returns a new string with whitespace removed from both ends." },
+          { code: 'message.includes("World")', explanation: 'Checks whether "World" appears anywhere inside the string.' },
+          { code: "`Hi, ${name}!`", explanation: "A template literal — the ${...} slot is replaced with the value of name." },
+          { code: '"2026-08-29".split("-")', explanation: 'Breaks the string into an array wherever a "-" appears.' },
+        ],
+      },
+    ],
+    howItWorks: `
+Because strings are immutable in JavaScript, every one of these methods
+returns a brand-new string (or array) rather than modifying the
+original — \`trim()\` doesn't change \`message\`, it hands you back a new,
+trimmed copy. \`length\` is different: it's a property, not a method, so
+you read it without parentheses.
+    `.trim(),
+    whyItExists: `
+Handling text by hand — walking character by character to search or
+reshape it — is slow to write and easy to get wrong. Built-in string
+methods cover the overwhelming majority of everyday text tasks with one
+clear, well-tested call.
+    `.trim(),
+    whenToUse: `
+Reach for these whenever you're validating, searching, formatting, or
+reshaping text — checking a username's length, confirming an email
+contains "@", splitting a comma-separated list, or building a message
+from variables with a template literal.
+    `.trim(),
+    whenNotToUse: `
+For very heavy text processing — parsing a complex format, matching
+flexible patterns — plain string methods can get unwieldy; that's when a
+regular expression is worth reaching for instead. And building a large
+string through many small concatenations in a loop is slower than
+assembling an array of pieces and joining it once.
+    `.trim(),
+    commonMistakes: [
+      "Forgetting that string methods don't mutate — `str.trim()` does nothing unless you use or store its return value.",
+      "Using `+` to build long strings piece by piece inside a loop instead of a template literal or joining an array.",
+      "Forgetting that `.length` counts UTF-16 code units, which can differ from the number of visible characters for some emoji and special characters.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Use `.toUpperCase()` and `.length` to print a name in all caps along with its length." },
+      { difficulty: "Medium", prompt: "Use `.split()` and `.join()` to reverse the order of words in a sentence." },
+      { difficulty: "Hard", prompt: "Write a function that checks whether a string is a valid-looking email (contains exactly one \"@\" and at least one \".\" after it) using only string methods." },
+    ],
+    interviewQuestions: [
+      { question: "Are strings mutable in JavaScript?", answer: "No — every string method returns a new string; the original is never changed." },
+      { question: "What's the difference between `slice` and `split` on a string?", answer: "`slice` extracts a portion of the string as a substring; `split` breaks the entire string apart into an array based on a separator." },
+      { question: "What is a template literal?", answer: "A string written with backticks that can embed expressions directly using `${...}`, avoiding manual string concatenation." },
+    ],
+    prerequisites: ["data-types"],
+    relatedTopics: ["data-types", "array-methods"],
+    keywords: ["string", "length", "slice", "split", "template literal", "includes", "trim"],
+  },
+  {
+    id: "callbacks",
+    title: "Callbacks",
+    level: "intermediate",
+    description: "A function you pass into another function, to be called later — often once some work finishes.",
+    explanation: `
+Functions are values in JavaScript, which means you can hand one function
+to another as an argument. A **callback** is exactly that: a function you
+pass into another function, with the expectation that it will be called
+at the right moment — after a click, after a timer finishes, after every
+item in an array.
+
+You've already been using callbacks without necessarily naming them — the
+function you pass to \`.map()\`, \`addEventListener()\`, or \`setTimeout()\` is
+a callback.
+    `.trim(),
+    analogy:
+      "It's like leaving a note with a restaurant host: 'Call this number when our table is ready.' You don't wait at the counter — you hand over instructions (the callback) and get on with your day, trusting it'll be used at the right moment.",
+    examples: [
+      {
+        title: "A function that accepts a callback",
+        code: `function greetUser(name, onDone) {
+  const message = "Hi, " + name + "!";
+  onDone(message); // calling the callback with the result
+}
+
+greetUser("Amara", (message) => {
+  console.log(message); // "Hi, Amara!"
+});`,
+        walkthrough: [
+          { code: "function greetUser(name, onDone) {", explanation: "Accepts a callback, onDone, as its second parameter." },
+          { code: 'const message = "Hi, " + name + "!";', explanation: "Builds the greeting." },
+          { code: "onDone(message);", explanation: "Calls the callback, handing it the result." },
+          { code: 'greetUser("Amara", (message) => {...});', explanation: "Passes an arrow function as the callback, which runs once greetUser calls it." },
+        ],
+      },
+    ],
+    howItWorks: `
+Nothing special happens under the hood — a callback is just a regular
+function value, stored in a parameter and called like any other
+function, whenever the code inside decides to call it. The only thing
+that makes it a "callback" is the role it's playing: being called back
+later, by someone else's code, instead of being called directly by
+yours.
+    `.trim(),
+    whyItExists: `
+Callbacks let a function's behavior stay flexible without knowing the
+details in advance — \`.map()\` doesn't know what transformation you want,
+\`addEventListener\` doesn't know what should happen on click. The callback
+is how you supply that missing piece.
+    `.trim(),
+    whenToUse: `
+Use a callback whenever you want to customize what happens at a specific
+point inside another function's logic — reacting to an event, running
+code once per array item, or defining what should happen once an
+asynchronous task finishes.
+    `.trim(),
+    whenNotToUse: `
+If you're nesting many callbacks inside each other for a sequence of
+asynchronous steps, that's exactly the pattern promises and async/await
+were built to replace — reach for those instead of deeply nested
+callbacks.
+    `.trim(),
+    commonMistakes: [
+      "Confusing `callback` with `callback()` — passing the function itself, not the result of calling it.",
+      "Forgetting that a callback might run asynchronously, and expecting code after it to have access to its result immediately.",
+      "Nesting many callbacks inside each other, producing hard-to-read 'callback hell'.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write a function `runTwice(fn)` that calls the given function twice in a row." },
+      { difficulty: "Medium", prompt: "Write a function `processArray(arr, callback)` that calls callback once for every item (essentially rebuilding forEach)." },
+      { difficulty: "Hard", prompt: "Write a function that takes a callback and calls it after a 1-second delay, using `setTimeout`." },
+    ],
+    interviewQuestions: [
+      { question: "What is a callback function?", answer: "A function passed as an argument to another function, intended to be called at a specific point inside it." },
+      { question: "Is every callback asynchronous?", answer: "No — callbacks used by array methods like map/filter run synchronously; callbacks passed to setTimeout or event listeners run later, asynchronously." },
+      { question: "What is 'callback hell'?", answer: "A pattern where callbacks are nested many levels deep to express a sequence of asynchronous steps, becoming hard to read — usually solved with promises or async/await." },
+    ],
+    prerequisites: ["functions"],
+    relatedTopics: ["higher-order-functions", "array-methods", "promises"],
+    keywords: ["callback", "function as value", "callback hell"],
+  },
+  {
+    id: "higher-order-functions",
+    title: "Higher-Order Functions",
+    level: "intermediate",
+    description: "A function that takes another function as input, returns one as output, or both.",
+    explanation: `
+In JavaScript, functions are values — you can store them in variables,
+put them in arrays, and pass them around just like a number or a string.
+A **higher-order function** is simply a function that takes advantage of
+this: it either accepts another function as a parameter, returns a
+function as its result, or does both.
+
+You've already met several: \`.map()\`, \`.filter()\`, and \`.reduce()\` are all
+higher-order functions, because each one accepts a callback function as
+an argument.
+    `.trim(),
+    analogy:
+      "A higher-order function is like a manager who doesn't do the specific task themselves — they take instructions (a function) from you and apply them, or they hand you back a customized set of instructions (a function) built for a specific situation.",
+    examples: [
+      {
+        title: "A function that returns a function",
+        code: `function multiplyBy(factor) {
+  return function (n) {
+    return n * factor;
+  };
+}
+
+const double = multiplyBy(2);
+const triple = multiplyBy(3);
+
+console.log(double(5)); // 10
+console.log(triple(5)); // 15`,
+        walkthrough: [
+          { code: "function multiplyBy(factor) {", explanation: "A function that will build and return another function." },
+          { code: "return function (n) { return n * factor; };", explanation: "Returns a new function, customized with whatever factor was passed in." },
+          { code: "const double = multiplyBy(2);", explanation: "double is now a function that always multiplies by 2." },
+          { code: "double(5);", explanation: "Calls that customized function, giving 10." },
+        ],
+      },
+    ],
+    howItWorks: `
+Because functions are ordinary values, returning one from another
+function works exactly like returning a number or a string — the
+returned function just happens to be callable, and (thanks to closures)
+it remembers the variables from where it was created, like \`factor\`
+above.
+    `.trim(),
+    whyItExists: `
+Higher-order functions let you write general-purpose logic once (like
+"multiply by some factor") and customize it on demand, instead of
+writing a separate, nearly-identical function for every specific case.
+    `.trim(),
+    whenToUse: `
+Reach for a higher-order function when you want to generate specialized
+functions from a general pattern (like \`multiplyBy\`), or when you're
+designing an API where the caller should supply custom behavior (like
+\`.map()\` accepting any transformation).
+    `.trim(),
+    whenNotToUse: `
+If a plain function with a couple of parameters would do the same job
+just as clearly, wrapping it in another layer of functions-returning-
+functions just adds indirection without benefit.
+    `.trim(),
+    commonMistakes: [
+      "Confusing a higher-order function with a callback — a higher-order function is the one accepting/returning functions; a callback is the function being passed in.",
+      "Forgetting to actually call the returned function — `const double = multiplyBy(2)` gives you a function, not a number.",
+      "Overusing function factories for cases that don't actually need customization.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write a higher-order function `add(a)` that returns a function which adds `a` to whatever number it's given." },
+      { difficulty: "Medium", prompt: "Write a function `compose(f, g)` that returns a new function applying `g` then `f` to its input." },
+      { difficulty: "Hard", prompt: "Write a function `debounce(fn, delay)` that returns a version of `fn` which only runs after it hasn't been called for `delay` milliseconds." },
+    ],
+    interviewQuestions: [
+      { question: "What makes a function 'higher-order'?", answer: "It accepts a function as an argument, returns a function, or both — treating functions as ordinary values." },
+      { question: "Are array methods like map and filter higher-order functions?", answer: "Yes — they accept a callback function as their argument." },
+      { question: "Why are higher-order functions useful?", answer: "They let you write general, reusable logic that can be customized with different behavior supplied by the caller." },
+    ],
+    prerequisites: ["callbacks", "closures"],
+    relatedTopics: ["callbacks", "closures", "array-methods"],
+    keywords: ["higher-order function", "function factory", "compose"],
+  },
+  {
+    id: "destructuring-and-spread",
+    title: "Destructuring & Spread/Rest",
+    level: "intermediate",
+    description: "Quick ways to pull values out of arrays/objects, and to expand or collect values using ...",
+    explanation: `
+Reading a few properties out of an object, or the first couple of items
+from an array, usually meant writing \`const name = user.name; const age =
+user.age;\` one line at a time. **Destructuring** lets you pull multiple
+values out in a single line, matching the shape of what you're reading
+from. Its close relative, the **spread/rest** operator (\`...\`), lets you
+expand a collection into individual values, or collect several
+individual values back into one.
+    `.trim(),
+    analogy:
+      "Destructuring is like unpacking a delivery box by naming exactly which items you want handed to you directly, instead of carrying the whole box around. Spread is like dumping the entire contents of one box into a bigger one; rest is the opposite — sweeping up 'everything else' into a single box of leftovers.",
+    examples: [
+      {
+        title: "Destructuring objects and arrays",
+        code: `const user = { name: "Amara", age: 28, country: "Kenya" };
+const { name, age } = user;
+console.log(name, age); // "Amara" 28
+
+const numbers = [10, 20, 30];
+const [first, second] = numbers;
+console.log(first, second); // 10 20
+
+function greet({ name, age }) {
+  console.log(\`Hi \${name}, age \${age}\`);
+}
+greet(user); // "Hi Amara, age 28"`,
+        walkthrough: [
+          { code: "const { name, age } = user;", explanation: "Pulls out just the name and age properties, matching them by key name." },
+          { code: "const [first, second] = numbers;", explanation: "Pulls out array items by position instead of by name." },
+          { code: "function greet({ name, age }) {...}", explanation: "Destructures directly in the parameter list, extracting exactly what the function needs." },
+        ],
+      },
+      {
+        title: "Spread and rest",
+        code: `const base = { name: "Amara", age: 28 };
+const withCountry = { ...base, country: "Kenya" }; // spread: expand base's properties in
+
+function sum(...numbers) { // rest: collect all arguments into an array
+  return numbers.reduce((total, n) => total + n, 0);
+}
+console.log(sum(1, 2, 3, 4)); // 10`,
+      },
+    ],
+    howItWorks: `
+Destructuring is really just special syntax for a series of individual
+assignments, matched by object key or array position, done all at once.
+Spread (\`...\` used when producing a new value) copies each
+element/property out one at a time into the new array/object. Rest
+(\`...\` used in a parameter list or destructuring pattern) does the
+opposite — it gathers up any remaining values into a single array.
+    `.trim(),
+    whyItExists: `
+Both features exist to remove repetitive, line-by-line extraction and
+combination code. Destructuring makes "give me these specific pieces" a
+single readable line; spread/rest make "combine everything" or "gather
+the rest" equally short, especially common when copying objects/arrays
+immutably or writing flexible functions.
+    `.trim(),
+    whenToUse: `
+Use destructuring anytime you only need a few named pieces out of an
+object or array — especially in function parameters. Use spread whenever
+you want to copy or merge objects/arrays without mutating the originals.
+Use rest whenever a function should accept any number of arguments, or
+you want "everything else" from an object/array.
+    `.trim(),
+    whenNotToUse: `
+Deeply nested destructuring patterns can become harder to read than a
+couple of plain property accesses — don't force it if it hurts clarity.
+And remember spread only makes a shallow copy — for nested objects,
+those nested values are still shared references, not fully cloned.
+    `.trim(),
+    commonMistakes: [
+      "Assuming spread makes a deep copy — it only copies one level; nested objects/arrays are still shared.",
+      "Mixing up destructuring order for arrays (position-based) with objects (name-based).",
+      "Forgetting that rest parameters must come last in a function's parameter list.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Destructure `name` and `email` out of a `user` object in one line." },
+      { difficulty: "Medium", prompt: "Use spread to create a copy of an array with one extra item added, without mutating the original." },
+      { difficulty: "Hard", prompt: "Write a function `sum(...numbers)` using rest parameters that adds any number of arguments together." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between spread and rest, given they use the same `...` syntax?", answer: "Spread expands a collection into individual values (used when building something new); rest collects individual values back into a single array (used in parameters or destructuring)." },
+      { question: "Does spread create a deep copy?", answer: "No — only a shallow copy; nested objects/arrays inside are still shared by reference." },
+      { question: "Can you destructure directly in a function's parameters?", answer: "Yes — it's a common way to pull out just the specific properties a function needs from an object argument." },
+    ],
+    prerequisites: ["objects", "arrays"],
+    relatedTopics: ["objects", "arrays", "functions"],
+    keywords: ["destructuring", "spread", "rest", "..."],
   },
 ];
