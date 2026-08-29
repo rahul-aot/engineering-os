@@ -7,10 +7,12 @@ import { stackProblems } from "./stack";
 import { binarySearchProblems } from "./binary-search";
 import { linkedListProblems } from "./linked-list";
 import { treesProblems } from "./trees";
+import { treesBstProblems } from "./trees-bst";
 import { triesProblems } from "./tries";
 import { heapProblems } from "./heap";
 import { backtrackingProblems } from "./backtracking";
 import { graphsProblems } from "./graphs";
+import { graphsMoreProblems } from "./graphs-more";
 import { advancedGraphsProblems } from "./advanced-graphs";
 import { dp1dProblems } from "./dp-1d";
 import { dp2dProblems } from "./dp-2d";
@@ -28,10 +30,12 @@ export const allProblems: Problem[] = [
   ...binarySearchProblems,
   ...linkedListProblems,
   ...treesProblems,
+  ...treesBstProblems,
   ...triesProblems,
   ...heapProblems,
   ...backtrackingProblems,
   ...graphsProblems,
+  ...graphsMoreProblems,
   ...advancedGraphsProblems,
   ...dp1dProblems,
   ...dp2dProblems,
