@@ -7,6 +7,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Divider from "@mui/material/Divider";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
 import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import BookmarkBorderOutlinedIcon from "@mui/icons-material/BookmarkBorderOutlined";
 import { subjects } from "../../content";
@@ -124,6 +125,12 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             />
           );
         })}
+        <NavRow
+          icon={<ChecklistOutlinedIcon fontSize="small" />}
+          label="Problems"
+          active={isActive("/problems")}
+          onClick={() => go("/problems")}
+        />
       </List>
 
       <SectionLabel>Other</SectionLabel>
