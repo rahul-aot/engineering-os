@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
@@ -11,6 +11,8 @@ import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import { alpha } from "@mui/material/styles";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
@@ -21,6 +23,7 @@ import InterviewQuestions from "../InterviewQuestions/InterviewQuestions";
 import RelatedTopics from "../RelatedTopics/RelatedTopics";
 import { useProgress } from "../../hooks/useProgress";
 import { useBookmarks } from "../../hooks/useBookmarks";
+import { getAdjacentTopics } from "../../content";
 import type { Subject, Topic } from "../../types/content";
 
 interface TopicPageProps {
@@ -51,12 +54,55 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface AdjacentTopicCardProps {
+  direction: "prev" | "next";
+  topic?: Topic;
+  onClick: () => void;
+}
+
+/** A "Previous topic" / "Next topic" nav card, used below the topic content. */
+function AdjacentTopicCard({ direction, topic, onClick }: AdjacentTopicCardProps) {
+  if (!topic) return <Box sx={{ flex: 1 }} />;
+
+  const isNext = direction === "next";
+
+  return (
+    <Box
+      onClick={onClick}
+      sx={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: isNext ? "flex-end" : "flex-start",
+        textAlign: isNext ? "right" : "left",
+        gap: 0.5,
+        p: 2,
+        borderRadius: 1.5,
+        border: "1px solid",
+        borderColor: "divider",
+        cursor: "pointer",
+        "&:hover": { borderColor: "primary.main" },
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary" }}>
+        {!isNext && <ArrowBackIcon fontSize="small" />}
+        <Typography variant="caption">{isNext ? "Next" : "Previous"}</Typography>
+        {isNext && <ArrowForwardIcon fontSize="small" />}
+      </Box>
+      <Typography variant="body1" sx={{ fontWeight: 600 }}>
+        {topic.title}
+      </Typography>
+    </Box>
+  );
+}
+
 /**
  * Renders the full, consistent topic template: what it is, an analogy,
  * an example, how it works, why it exists, common mistakes, practice
  * exercises, interview questions, and related topics.
  */
 export default function TopicPage({ subject, topic }: TopicPageProps) {
+  const navigate = useNavigate();
   const { getStatus, markCompleted, recordVisit } = useProgress();
   const { isBookmarked, toggleBookmark } = useBookmarks();
 
@@ -68,6 +114,7 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
 
   const status = getStatus(topic.id);
   const bookmarked = isBookmarked(topic.id);
+  const { prev, next } = getAdjacentTopics(subject.id, topic.id);
 
   return (
     <Box sx={{ maxWidth: 850, mx: "auto" }}>
@@ -222,6 +269,19 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
         >
           {status === "completed" ? "Completed" : "Mark as completed"}
         </Button>
+      </Box>
+
+      <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+        <AdjacentTopicCard
+          direction="prev"
+          topic={prev}
+          onClick={() => prev && navigate(`/${subject.id}/${prev.id}`)}
+        />
+        <AdjacentTopicCard
+          direction="next"
+          topic={next}
+          onClick={() => next && navigate(`/${subject.id}/${next.id}`)}
+        />
       </Box>
     </Box>
   );

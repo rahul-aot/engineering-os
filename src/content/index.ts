@@ -34,4 +34,26 @@ export function findTopicAnywhere(
   return undefined;
 }
 
+/**
+ * The topic immediately before/after the given one within its subject,
+ * following the same beginner -> intermediate -> advanced order used by
+ * TopicList. Used to power "Previous topic" / "Next topic" navigation on
+ * the Topic page. Either end is undefined at the start/end of the list.
+ */
+export function getAdjacentTopics(
+  subjectId: string,
+  topicId: string,
+): { prev?: Topic; next?: Topic } {
+  const subject = getSubject(subjectId);
+  if (!subject) return {};
+
+  const index = subject.topics.findIndex((t) => t.id === topicId);
+  if (index === -1) return {};
+
+  return {
+    prev: subject.topics[index - 1],
+    next: subject.topics[index + 1],
+  };
+}
+
 export { javascriptSubject, dsaSubject, systemDesignSubject };
