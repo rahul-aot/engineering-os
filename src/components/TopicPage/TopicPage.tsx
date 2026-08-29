@@ -151,6 +151,18 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
         <InlineText text={topic.description} />
       </Typography>
 
+      {topic.prerequisites && topic.prerequisites.length > 0 && (
+        <Box sx={{ mt: 2.5 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", fontWeight: 600, mb: 1 }}
+          >
+            Before this, make sure you understand
+          </Typography>
+          <RelatedTopics subjectId={subject.id} topicIds={topic.prerequisites} />
+        </Box>
+      )}
+
       <Divider sx={{ my: 3 }} />
 
       <SectionHeading>What is it?</SectionHeading>
@@ -208,6 +220,12 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
 
       <SectionHeading>Why Does This Exist?</SectionHeading>
       <RichText text={topic.whyItExists} />
+
+      <SectionHeading>When To Use It</SectionHeading>
+      <RichText text={topic.whenToUse} />
+
+      <SectionHeading>When NOT To Use It</SectionHeading>
+      <RichText text={topic.whenNotToUse} />
 
       {topic.commonMistakes.length > 0 && (
         <>

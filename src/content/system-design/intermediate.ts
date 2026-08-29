@@ -31,6 +31,11 @@ async function getUser(id) {
 }`,
         explanation:
           "The server doesn't store user data itself — it asks the database, which is responsible for storing and retrieving it reliably.",
+        walkthrough: [
+          { code: "async function getUser(id) {", explanation: "Defines a function that will fetch one user from the database." },
+          { code: 'database.query("SELECT * FROM users WHERE id = ?", [id])', explanation: "Asks the database for the row matching this id, waiting for the (possibly slow) answer." },
+          { code: "return user;", explanation: "Sends the result back to whoever called getUser." },
+        ],
       },
     ],
     howItWorks: `
@@ -45,6 +50,16 @@ Applications need data to persist reliably — surviving crashes, restarts,
 and simultaneous use by many users at once. Building that reliability from
 scratch for every app would be enormously wasteful; databases exist so
 every application can rely on the same well-tested foundation.
+    `.trim(),
+    whenToUse: `
+Use a database anytime data needs to survive beyond a single request or
+process — user accounts, orders, posts, anything that must still be there
+tomorrow, or on a different server entirely.
+    `.trim(),
+    whenNotToUse: `
+For data that's only ever needed for the lifetime of a single request — a
+temporary calculation, a value passed between two functions — a database
+is unnecessary overhead. Keep that in memory instead.
     `.trim(),
     commonMistakes: [
       "Storing important data only in server memory, losing it whenever the server restarts.",
@@ -61,6 +76,7 @@ every application can rely on the same well-tested foundation.
       { question: "What's the difference between reading and writing data in terms of design concerns?", answer: "Reads are typically far more frequent and easier to scale (e.g. via caching or replicas); writes need stronger guarantees around consistency and conflict handling." },
       { question: "What is data persistence?", answer: "The property of data surviving beyond the lifetime of the process that created it — e.g. still being there after a server restarts." },
     ],
+    prerequisites: ["rest-apis"],
     relatedTopics: ["sql-vs-nosql", "caching", "rest-apis"],
     keywords: ["database", "persistence", "query", "storage"],
   },
@@ -97,6 +113,11 @@ SELECT * FROM users WHERE id = 1;
   "email": "amara@example.com",
   "preferences": { "theme": "dark" } // easy to add, no schema change needed
 }`,
+        walkthrough: [
+          { code: "-- users(id, name, email)", explanation: "Defines a strict table shape — every row must have exactly these columns." },
+          { code: "SELECT * FROM users WHERE id = 1;", explanation: "Reads the row matching id 1 from that fixed table." },
+          { code: '{ "id": 1, "name": ..., "preferences": {...} }', explanation: "The same kind of data, stored as a flexible document — new fields can be added without changing every other record." },
+        ],
       },
     ],
     howItWorks: `
@@ -114,6 +135,21 @@ less structured or needs to scale to enormous volume across many servers
 (logs, user activity feeds) — where NoSQL's flexibility and scalability
 are a better fit.
     `.trim(),
+    whenToUse: `
+Reach for SQL when your data is naturally tabular and relationships
+between records matter a lot (orders belonging to users, items belonging
+to orders) and you want strong consistency guarantees. Reach for NoSQL
+when your data's shape varies a lot, changes frequently, or needs to
+scale out across many machines more easily than a single relational
+database can.
+    `.trim(),
+    whenNotToUse: `
+Don't pick NoSQL just because it feels more modern — if your data is
+genuinely relational, fighting that in a document store often means
+reinventing SQL's features yourself. And don't force rigid SQL tables onto
+data that changes shape constantly; frequent schema migrations become
+their own maintenance burden.
+    `.trim(),
     commonMistakes: [
       "Assuming NoSQL is always 'faster' or 'more modern' — it's a different trade-off, not a strict upgrade.",
       "Using a rigid SQL schema for data that changes shape constantly, causing painful migrations.",
@@ -129,6 +165,7 @@ are a better fit.
       { question: "When would you choose NoSQL over SQL?", answer: "When your data doesn't fit neatly into fixed tables, needs to scale horizontally across many servers, or its structure changes frequently." },
       { question: "Does choosing NoSQL mean giving up data consistency entirely?", answer: "Not entirely — but many NoSQL systems trade some strong consistency guarantees for availability and scalability, following what's sometimes called 'eventual consistency'." },
     ],
+    prerequisites: ["databases"],
     relatedTopics: ["databases", "scalability"],
     keywords: ["SQL", "NoSQL", "relational", "schema", "document database"],
   },
@@ -161,6 +198,12 @@ async function getUser(id) {
   cache.set(id, user);
   return user;
 }`,
+        walkthrough: [
+          { code: "const cache = new Map();", explanation: "A simple in-memory cache, empty to start." },
+          { code: "if (cache.has(id)) { return cache.get(id); }", explanation: "If this id's result is already cached, return it immediately — no database call." },
+          { code: 'const user = await database.query(...);', explanation: "Only runs on a cache miss — the expensive lookup." },
+          { code: "cache.set(id, user);", explanation: "Stores the result for next time, before returning it." },
+        ],
       },
     ],
     howItWorks: `
@@ -187,6 +230,17 @@ databases) and makes responses feel instant to users, at the cost of
 occasionally serving slightly outdated data — a trade-off that's usually
 well worth it for data that doesn't change every second.
     `.trim(),
+    whenToUse: `
+Reach for caching when the same expensive result is requested repeatedly
+and doesn't need to be perfectly fresh every single time — a product
+page, a popular search result, a computed report.
+    `.trim(),
+    whenNotToUse: `
+Don't cache data that must always be perfectly up to date and changes
+constantly — a live account balance mid-transaction, for instance — or
+if you do, keep the cache lifetime extremely short and invalidate it
+deliberately whenever the underlying data changes.
+    `.trim(),
     commonMistakes: [
       "Caching data that changes frequently without a short enough expiration, leading to users seeing stale information.",
       "Forgetting to invalidate (clear) a cached value when the underlying data changes.",
@@ -202,6 +256,7 @@ well worth it for data that doesn't change every second.
       { question: "What is cache invalidation, and why is it considered hard?", answer: "It's the process of removing or updating cached data once it's no longer accurate — hard because you must reliably track every place a cached value could become stale." },
       { question: "What's a trade-off caching introduces?", answer: "It can serve slightly outdated ('stale') data for a period of time, in exchange for much faster responses and less load on the underlying system." },
     ],
+    prerequisites: ["databases"],
     relatedTopics: ["databases", "load-balancing", "cdn"],
     keywords: ["cache", "cache hit", "cache miss", "invalidation", "TTL"],
   },

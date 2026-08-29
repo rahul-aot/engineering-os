@@ -34,6 +34,12 @@ elsewhere in programming.
 }`,
         explanation:
           "Bubble sort repeatedly swaps adjacent out-of-order items. It's easy to understand, but the nested loops make it O(n²) — slow for large arrays.",
+        walkthrough: [
+          { code: "for (let i = 0; i < arr.length; i++) {", explanation: "Runs one full pass over the array for every item — part of what makes this O(n²)." },
+          { code: "for (let j = 0; j < arr.length - i - 1; j++) {", explanation: "Within each pass, compares every pair of neighbors, shrinking slightly as sorted items settle at the end." },
+          { code: "if (arr[j] > arr[j + 1]) {", explanation: "Checks whether two neighbors are out of order." },
+          { code: "[arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];", explanation: "Swaps them so the larger value moves one step closer to the end." },
+        ],
       },
       {
         title: "Using the built-in sort",
@@ -69,6 +75,18 @@ many real systems (search results, leaderboards, logs) need to display
 data in order. Studying sorting algorithms also teaches transferable
 techniques: comparison, swapping, and divide-and-conquer thinking.
     `.trim(),
+    whenToUse: `
+Reach for sorting whenever the order you present data in matters —
+leaderboards, search results, alphabetized lists — or as groundwork for a
+faster algorithm downstream, like binary search, which needs sorted data
+to work at all.
+    `.trim(),
+    whenNotToUse: `
+Don't sort data you're only going to scan once looking for a single
+value — a plain linear search is cheaper in that case. And in production
+code, don't hand-write a sort algorithm at all; the built-in \`.sort()\` is
+well-tested and normally faster than anything you'd write by hand.
+    `.trim(),
     commonMistakes: [
       "Reimplementing your own sort in production code instead of using the built-in, well-tested `.sort()`.",
       "Forgetting that JavaScript's default `.sort()` compares items as strings unless you provide a comparator function — `[10, 2, 1].sort()` gives `[1, 10, 2]` without one.",
@@ -84,6 +102,7 @@ techniques: comparison, swapping, and divide-and-conquer thinking.
       { question: "How does merge sort achieve O(n log n)?", answer: "By recursively splitting the array in half (log n levels of splitting) and merging sorted halves in linear time at each level." },
       { question: "Why would you use the built-in `.sort()` instead of writing your own?", answer: "Built-in implementations are heavily optimized and tested; writing your own is mainly useful for learning the underlying algorithms, not for production use." },
     ],
+    prerequisites: ["recursion", "arrays"],
     relatedTopics: ["big-o", "arrays", "recursion"],
     keywords: ["sorting", "bubble sort", "merge sort", "quicksort", "divide and conquer"],
   },

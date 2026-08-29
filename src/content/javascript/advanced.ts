@@ -33,6 +33,13 @@ You attach instructions for what to do in each case using \`.then()\` and
 waitOneSecond()
   .then((message) => console.log(message)) // logs "Done waiting!" after 1s
   .catch((error) => console.log("Something went wrong:", error));`,
+        walkthrough: [
+          { code: "function waitOneSecond() {", explanation: "Defines a function that returns a promise instead of an immediate value." },
+          { code: "return new Promise((resolve) => {", explanation: "Creates a new pending promise; resolve is a function to call once the work succeeds." },
+          { code: 'setTimeout(() => { resolve("Done waiting!"); }, 1000);', explanation: "After 1 second, calls resolve with the result, settling the promise as fulfilled." },
+          { code: "waitOneSecond().then((message) => ...)", explanation: "Runs this callback once the promise resolves, receiving the resolved value." },
+          { code: ".catch((error) => ...)", explanation: "Runs only if the promise is rejected instead of resolved." },
+        ],
       },
     ],
     howItWorks: `
@@ -59,6 +66,18 @@ user, then fetch their orders, then fetch order details") led to deeply
 nested callbacks that were hard to read and error-prone. Promises give
 asynchronous code a consistent shape and let errors be handled in one place.
     `.trim(),
+    whenToUse: `
+Reach for a promise anytime you're doing something that finishes later,
+not immediately — fetching data, reading a file, waiting on a timer — and
+you want a clean way to say what happens on success versus failure.
+    `.trim(),
+    whenNotToUse: `
+You don't need a promise for something that finishes instantly — wrapping
+simple, immediate work in one just adds overhead. And in most modern code
+you'll rarely write \`.then()\` chains by hand; reach for \`async/await\` on top
+of promises instead, and use raw promises mainly when building the
+underlying async function itself.
+    `.trim(),
     commonMistakes: [
       "Forgetting to add a `.catch()`, so errors disappear silently.",
       "Nesting `.then()` calls instead of chaining them, recreating the exact mess promises were meant to fix.",
@@ -74,6 +93,7 @@ asynchronous code a consistent shape and let errors be handled in one place.
       { question: "What's the difference between `.then()` and `.catch()`?", answer: "`.then()` handles a successful resolution; `.catch()` handles a rejection (an error)." },
       { question: "What does `Promise.all()` do?", answer: "It takes an array of promises and resolves once all of them succeed, or rejects as soon as any one of them fails." },
     ],
+    prerequisites: ["functions"],
     relatedTopics: ["async-await", "event-loop"],
     keywords: ["promise", "resolve", "reject", "then", "catch", "async"],
   },
@@ -103,6 +123,12 @@ settles.
   const data = await response.json();
   return data;
 }`,
+        walkthrough: [
+          { code: "async function getUserData() {", explanation: "Marks this function as async, allowing await inside it and making it always return a promise." },
+          { code: 'const response = await fetch("/api/user");', explanation: "Pauses this function only (not the whole program) until the network request settles." },
+          { code: "const data = await response.json();", explanation: "Pauses again while the response body is parsed as JSON." },
+          { code: "return data;", explanation: "Sends the parsed data back to whoever called and awaited getUserData()." },
+        ],
       },
       {
         title: "Handling errors with try/catch",
@@ -129,6 +155,18 @@ async/await exists purely to make promise-based code easier to read and
 reason about. It doesn't replace promises — it's built entirely on top of
 them — but it removes a lot of the \`.then()\` chaining boilerplate.
     `.trim(),
+    whenToUse: `
+Use async/await whenever you have a sequence of asynchronous steps that
+depend on each other — fetch a user, then fetch their orders, then display
+them — and you want that sequence to read top-to-bottom like ordinary
+code.
+    `.trim(),
+    whenNotToUse: `
+Skip async/await for synchronous code that never needs to wait on
+anything — adding \`async\` gains you nothing there. And when several async
+tasks don't depend on each other, awaiting them one at a time is slower
+than starting them together with \`Promise.all\`.
+    `.trim(),
     commonMistakes: [
       "Forgetting the `async` keyword on a function that uses `await` inside it.",
       "Forgetting to wrap `await` calls in `try/catch`, so rejected promises crash the function silently.",
@@ -144,6 +182,7 @@ them — but it removes a lot of the \`.then()\` chaining boilerplate.
       { question: "How do you handle errors in async/await code?", answer: "With a `try/catch` block around the `await` calls." },
       { question: "Does `await` block the entire program?", answer: "No — it only pauses the current async function. The rest of the program (and browser) keeps running normally." },
     ],
+    prerequisites: ["promises"],
     relatedTopics: ["promises", "event-loop"],
     keywords: ["async", "await", "try catch", "asynchronous"],
   },
@@ -181,6 +220,12 @@ console.log("3: end");
 // 2: timeout callback`,
         explanation:
           "Even with a 0ms delay, the timeout callback runs after all the regular code — because it has to wait for the main code to finish first.",
+        walkthrough: [
+          { code: 'console.log("1: start");', explanation: "Runs immediately — the first line on the call stack." },
+          { code: "setTimeout(() => {...}, 0);", explanation: "Hands the callback to the browser to run later, even with a 0ms delay — JavaScript doesn't wait here." },
+          { code: 'console.log("3: end");', explanation: "Also runs immediately, since it doesn't wait on the timer at all." },
+          { code: "// 2: timeout callback", explanation: "Only runs once the current code finishes and the call stack is completely empty." },
+        ],
       },
     ],
     howItWorks: `
@@ -207,6 +252,18 @@ freeze the entire page until it finished. The event loop lets JavaScript
 start slow tasks, move on immediately, and come back to handle the result
 later — keeping the page responsive the whole time.
     `.trim(),
+    whenToUse: `
+You reach for this mental model any time you're debugging unexpected
+ordering — why a \`console.log\` ran before a network response, why a
+\`setTimeout(fn, 0)\` didn't run immediately, or why the page froze during a
+long calculation.
+    `.trim(),
+    whenNotToUse: `
+Day-to-day, you don't manage the event loop directly — there's no API to
+configure it. It's not something you "use"; it's something you understand
+so that async code (promises, timers, events) makes sense instead of
+feeling random.
+    `.trim(),
     commonMistakes: [
       "Assuming `setTimeout(fn, 0)` runs immediately — it still waits for the current code to finish first.",
       "Not realizing that a long-running synchronous loop can freeze the page, since nothing else can run until the call stack is clear.",
@@ -222,6 +279,7 @@ later — keeping the page responsive the whole time.
       { question: "What is the difference between the call stack and the task queue?", answer: "The call stack is where code currently executes, one frame at a time. The task queue holds callbacks (from timers, promises, events) waiting for the stack to be empty before they can run." },
       { question: "Do microtasks (promises) or macrotasks (setTimeout) run first?", answer: "Microtasks run first — the event loop drains the entire microtask queue before picking up the next macrotask." },
     ],
+    prerequisites: ["async-await"],
     relatedTopics: ["promises", "async-await"],
     keywords: ["event loop", "call stack", "queue", "single-threaded", "microtask"],
   },
@@ -257,6 +315,12 @@ dog.name = "Rex";
 
 dog.speak(); // "Rex makes a sound."
 // dog doesn't have its own "speak" method — it found it on "animal"`,
+        walkthrough: [
+          { code: "const animal = { speak() {...} };", explanation: "A plain object with one method, speak." },
+          { code: "const dog = Object.create(animal);", explanation: "Creates a new, empty object whose prototype is set to animal." },
+          { code: 'dog.name = "Rex";', explanation: "Adds an own property, name, directly on dog." },
+          { code: "dog.speak();", explanation: "dog has no speak of its own, so JavaScript finds it on animal via the prototype chain." },
+        ],
       },
     ],
     howItWorks: `
@@ -271,6 +335,19 @@ Prototypes let many objects share the same methods without each one storing
 its own separate copy — saving memory and letting you update shared
 behavior in one place. It's the mechanism underneath JavaScript's classes
 and built-in types like arrays and strings.
+    `.trim(),
+    whenToUse: `
+You lean on prototypes — often without realizing it — any time you call a
+built-in method on a value (\`.map()\`, \`.toUpperCase()\`). You reach for them
+directly when you want several objects to share the same behavior without
+duplicating it, which today is usually written with \`class\` rather than
+\`Object.create\` by hand.
+    `.trim(),
+    whenNotToUse: `
+For most everyday application code, you don't need to manipulate
+prototypes directly — \`class\` syntax covers the common cases more clearly.
+Reach for raw prototype manipulation only when you're building a library,
+working with older code, or need behavior \`class\` doesn't offer directly.
     `.trim(),
     commonMistakes: [
       "Confusing an object's own properties with properties it only has access to through its prototype.",
@@ -287,6 +364,7 @@ and built-in types like arrays and strings.
       { question: "How does `class` relate to prototypes?", answer: "JavaScript classes are largely syntax sugar over prototype-based inheritance — methods defined in a class body end up on the class's prototype." },
       { question: "What does `Object.create(proto)` do?", answer: "It creates a new, empty object whose prototype is explicitly set to `proto`, giving it access to everything on `proto` without copying it." },
     ],
+    prerequisites: ["objects"],
     relatedTopics: ["objects", "this"],
     keywords: ["prototype", "prototype chain", "inheritance", "Object.create"],
   },
@@ -323,6 +401,12 @@ const greetFn = user.greet;
 greetFn(); // "Hi, I'm undefined" — this is no longer "user" here`,
         explanation:
           "Calling `user.greet()` sets `this` to `user`. But once the function is detached from `user` and called on its own, `this` no longer points to `user`.",
+        walkthrough: [
+          { code: "const user = { name: ..., greet() {...} };", explanation: "Defines an object with a method, greet." },
+          { code: "user.greet();", explanation: "Called as user.greet(), so this inside greet is set to user." },
+          { code: "const greetFn = user.greet;", explanation: "Copies just the function itself, detached from user." },
+          { code: "greetFn();", explanation: "Called plainly, so this is no longer user — this.name is undefined." },
+        ],
       },
       {
         title: "Arrow functions and `this`",
@@ -350,6 +434,17 @@ objects — one \`greet\` method can be shared by every user object, each
 correctly referring to itself, instead of needing a separate hardcoded copy
 per object.
     `.trim(),
+    whenToUse: `
+You need to reason about \`this\` any time you write a method on an object,
+use a class, or pass a function around as a callback — knowing what \`this\`
+will be tells you whether that code will actually work when it's called.
+    `.trim(),
+    whenNotToUse: `
+In plain or arrow functions that don't depend on an object's own data, you
+often don't need \`this\` at all — a regular parameter is clearer. And inside
+object methods that get used as callbacks, prefer an arrow function or
+\`.bind()\` over relying on the caller to preserve \`this\` correctly.
+    `.trim(),
     commonMistakes: [
       "Passing an object method as a callback (e.g. to `setTimeout`) and losing its intended `this`.",
       "Using a regular function for an object method that's called as a plain callback, instead of binding it or using an arrow function appropriately.",
@@ -365,6 +460,7 @@ per object.
       { question: "Why don't arrow functions have their own `this`?", answer: "They were designed to inherit `this` from their surrounding (lexical) scope, which avoids a very common class of bugs when using callbacks inside methods." },
       { question: "What does `.bind()` do?", answer: "It returns a new function with `this` permanently set to whatever value you pass in, regardless of how that new function is later called." },
     ],
+    prerequisites: ["functions", "objects"],
     relatedTopics: ["functions", "prototypes", "closures"],
     keywords: ["this", "bind", "call", "apply", "context"],
   },

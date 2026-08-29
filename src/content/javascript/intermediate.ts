@@ -27,6 +27,13 @@ console.log(fruits.length); // 3
 
 fruits.push("date"); // adds to the end
 fruits.pop();        // removes the last item`,
+        walkthrough: [
+          { code: 'const fruits = ["apple", ...]', explanation: "Creates an array holding three strings, in order." },
+          { code: "fruits[0]", explanation: 'Reads the item at index 0 — the first item, "apple".' },
+          { code: "fruits.length", explanation: "Reports how many items are in the array right now." },
+          { code: 'fruits.push("date");', explanation: 'Adds "date" to the end of the array.' },
+          { code: "fruits.pop();", explanation: "Removes and returns the last item in the array." },
+        ],
       },
       {
         title: "Looping over an array",
@@ -47,6 +54,19 @@ Almost every real program deals with collections of things — a list of
 users, a shopping cart, search results. Arrays give you a consistent,
 built-in way to store, access, and process ordered groups of data.
     `.trim(),
+    whenToUse: `
+Reach for an array whenever you have more than one related value with a
+natural order — a list of to-dos, a set of scores, the results of a
+search. If you catch yourself naming variables \`item1\`, \`item2\`, \`item3\`,
+that's a sign you want an array instead.
+    `.trim(),
+    whenNotToUse: `
+If your values aren't really a sequence but a set of named attributes
+about one thing (a person's name, age, and email), an object is a better
+fit than an array. And if you need fast lookups by a unique key rather
+than by position, a \`Map\` or object usually serves you better than
+searching through an array.
+    `.trim(),
     commonMistakes: [
       "Forgetting that array indexes start at 0, not 1.",
       "Trying to access an index that doesn't exist (returns `undefined` instead of an error).",
@@ -62,6 +82,7 @@ built-in way to store, access, and process ordered groups of data.
       { question: "What's the difference between `map` and `forEach`?", answer: "`map` returns a new array built from the return value of each call; `forEach` just runs a function for each item and returns `undefined`." },
       { question: "How do you check if a value exists in an array?", answer: "`array.includes(value)` returns true/false; `array.indexOf(value)` returns the position or -1 if not found." },
     ],
+    prerequisites: ["functions"],
     relatedTopics: ["objects", "loops"],
     keywords: ["array", "index", "push", "pop", "map", "filter", "reduce"],
   },
@@ -94,6 +115,12 @@ console.log(user["age"]);    // 28
 user.age = 29; // update a property`,
         explanation:
           "Properties can be read with dot notation (`user.name`) or bracket notation (`user[\"age\"]`), which is useful when the key is dynamic.",
+        walkthrough: [
+          { code: "const user = { name: ..., age: ..., isAdmin: ... };", explanation: "Creates an object with three named properties." },
+          { code: "user.name", explanation: "Dot notation reads the value stored under the name key." },
+          { code: 'user["age"]', explanation: "Bracket notation does the same thing, and is useful when the key is stored in a variable." },
+          { code: "user.age = 29;", explanation: "Updates the existing age property to a new value." },
+        ],
       },
     ],
     howItWorks: `
@@ -107,6 +134,18 @@ Real-world things usually have multiple attributes at once — a product has
 a name, price, and stock count; a user has an email and a role. Objects let
 you group all of that related data together instead of tracking it in
 several separate, disconnected variables.
+    `.trim(),
+    whenToUse: `
+Use an object whenever you're describing one thing with several named
+attributes — a user, a product, a settings config. If you'd naturally
+answer "what properties does it have?" rather than "what position is it
+at?", it's an object.
+    `.trim(),
+    whenNotToUse: `
+If your data is really a sequence of similar items, an array (or an array
+of objects) fits better than a single object with numbered-looking keys.
+And for very large collections you need to search by key constantly, a
+\`Map\` can be a better fit than a plain object.
     `.trim(),
     commonMistakes: [
       "Trying to access a property that doesn't exist and being surprised it returns `undefined` instead of an error.",
@@ -123,6 +162,7 @@ several separate, disconnected variables.
       { question: "How do you check if a key exists on an object?", answer: "Using the `in` operator (`\"name\" in user`) or `Object.hasOwn(user, \"name\")`." },
       { question: "Why does copying an object with `=` sometimes cause bugs?", answer: "Objects are copied by reference, so both variables point to the same underlying object — changing one changes the other, unless you explicitly clone it." },
     ],
+    prerequisites: ["arrays"],
     relatedTopics: ["arrays", "scope", "prototypes"],
     keywords: ["object", "property", "key", "value", "dot notation"],
   },
@@ -153,6 +193,12 @@ it); it disappears once the function finishes.
 
 greet();
 console.log(message); // ❌ Error: message is not defined out here`,
+        walkthrough: [
+          { code: "function greet() {", explanation: "Starts a new function scope." },
+          { code: 'const message = "Hello!";', explanation: "message only exists inside this function's scope." },
+          { code: "console.log(message);", explanation: "Works because message is in scope right here, inside greet." },
+          { code: "console.log(message); // outside", explanation: "Fails — message's scope ended the moment the function finished running." },
+        ],
       },
       {
         title: "Block scope with let/const",
@@ -183,6 +229,17 @@ which would make large programs a mess — names would collide constantly,
 and it would be impossible to tell what any given piece of code depends on.
 Scope keeps variables contained to where they're actually relevant.
     `.trim(),
+    whenToUse: `
+You're actively reasoning about scope any time you're deciding where to
+declare a variable, debugging a "not defined" error, or trying to
+understand why a variable inside a function isn't visible outside it.
+    `.trim(),
+    whenNotToUse: `
+You don't need to think hard about scope for a variable used in one
+small, self-contained block — it only becomes a source of confusion (and
+bugs) once a program grows large enough that the same name gets reused in
+multiple places.
+    `.trim(),
     commonMistakes: [
       "Assuming a variable declared inside an `if` block is available outside of it.",
       "Accidentally creating a global variable by forgetting `let`/`const`/`var`.",
@@ -198,6 +255,7 @@ Scope keeps variables contained to where they're actually relevant.
       { question: "What is the difference between global scope, function scope, and block scope?", answer: "Global scope is accessible everywhere; function scope is limited to inside a function; block scope (introduced by `let`/`const`) is limited to the nearest `{}` block, like an `if` or `for`." },
       { question: "How does scope relate to closures?", answer: "A closure is what happens when a function 'remembers' variables from its outer scope even after that outer scope has finished running." },
     ],
+    prerequisites: ["functions"],
     relatedTopics: ["functions", "closures"],
     keywords: ["lexical scope", "block scope", "scope chain", "global"],
   },
@@ -237,6 +295,13 @@ console.log(counter()); // 2
 console.log(counter()); // 3`,
         explanation:
           "`makeCounter` finishes running immediately, but the inner function it returns still remembers and can update `count` every time it's called.",
+        walkthrough: [
+          { code: "function makeCounter() {", explanation: "Defines a function whose job is to build and return a counter." },
+          { code: "let count = 0;", explanation: "A variable private to this one call of makeCounter." },
+          { code: "return function () {", explanation: "Returns a brand-new function that closes over count." },
+          { code: "count = count + 1; return count;", explanation: "Each call updates and returns the same shared count, remembered between calls." },
+          { code: "const counter = makeCounter();", explanation: "Runs makeCounter once, getting back the inner function with its own private count." },
+        ],
       },
     ],
     howItWorks: `
@@ -262,6 +327,18 @@ small group of functions) can access and update, without exposing it as a
 global variable anyone could accidentally change. They're the foundation
 for patterns like counters, caches, and event handlers with private data.
     `.trim(),
+    whenToUse: `
+Reach for a closure whenever you want a piece of state that only one
+function (or a small group of related functions) can touch — a counter, a
+cache, a toggle, a configuration value set up once and reused on every
+call.
+    `.trim(),
+    whenNotToUse: `
+If the state genuinely needs to be shared, modified from many unrelated
+places, or inspected from outside, a closure's privacy works against you —
+a plain object or a class is usually clearer. And don't reach for a
+closure just to avoid passing one extra parameter.
+    `.trim(),
     commonMistakes: [
       "Creating closures inside a loop and expecting each one to capture a different value of the loop variable when using `var` (they all share the same one — `let` fixes this).",
       "Thinking a closure copies the outer variable's value — it actually keeps a live reference, so if the value changes later, the closure sees the new value.",
@@ -277,6 +354,7 @@ for patterns like counters, caches, and event handlers with private data.
       { question: "Why are closures useful?", answer: "They let you create private, persistent state tied to a function, without using global variables — useful for counters, caches, and encapsulated logic." },
       { question: "What is lexical scope, and how does it relate to closures?", answer: "Lexical scope determines which variables a function can see based on where it's written in the code. Closures are the direct result of that: a function 'takes its scope with it' wherever it goes." },
     ],
+    prerequisites: ["scope"],
     relatedTopics: ["scope", "functions", "this"],
     keywords: ["closure", "lexical scope", "private state", "counter"],
   },

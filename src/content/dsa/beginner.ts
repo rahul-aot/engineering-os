@@ -36,6 +36,11 @@ function findValue(arr, target) {
 }`,
         explanation:
           "`getFirst` always does exactly one step. `findValue` might need to check every single item, so its worst-case work grows directly with the array's size.",
+        walkthrough: [
+          { code: "return arr[0];", explanation: "Always does exactly one step, no matter how big arr is — O(1)." },
+          { code: "for (let i = 0; i < arr.length; i++) {", explanation: "In the worst case, this runs once for every item in arr." },
+          { code: "if (arr[i] === target) return i;", explanation: "Checks one item per pass, so total work grows directly with arr's size — O(n)." },
+        ],
       },
     ],
     howItWorks: `
@@ -58,6 +63,17 @@ difference between an efficient and inefficient approach becomes the
 difference between an app that feels instant and one that visibly freezes.
 Big O gives engineers a common language to compare approaches before
 writing (or after debugging) real code.
+    `.trim(),
+    whenToUse: `
+Reach for Big O whenever you're choosing between two different approaches
+to the same problem and need a fast way to compare how they'll scale, or
+when you're explaining — in an interview or a code review — why one
+solution is better than another.
+    `.trim(),
+    whenNotToUse: `
+For truly tiny, fixed-size inputs that will never grow, the difference
+between O(n) and O(n²) may not matter in practice — don't let Big O turn
+into premature optimization for code that never runs on real-sized data.
     `.trim(),
     commonMistakes: [
       "Assuming code that works fine on a small test array will work fine at real scale.",
@@ -103,6 +119,11 @@ console.log(arr[2]); // 30 — instant, O(1)
 
 arr.splice(1, 0, 15); // insert 15 at index 1
 // arr is now [10, 15, 20, 30, 40] — everything after index 1 had to shift`,
+        walkthrough: [
+          { code: "const arr = [10, 20, 30, 40];", explanation: "Creates an array of 4 numbers, stored in order." },
+          { code: "arr[2]", explanation: "Jumps directly to position 2 — O(1), regardless of the array's size." },
+          { code: "arr.splice(1, 0, 15);", explanation: "Inserts 15 at index 1, shifting every item after it over by one — O(n)." },
+        ],
       },
     ],
     howItWorks: `
@@ -117,6 +138,16 @@ Fast, predictable access by position is essential for countless problems —
 searching, sorting, storing sequences of steps or events. Arrays are the
 default choice whenever order matters and you mostly need to read items
 rather than insert them in the middle.
+    `.trim(),
+    whenToUse: `
+Reach for an array when you need fast, predictable access to items by
+their position, and you mostly read data rather than insert into the
+middle — a leaderboard, a list of recent events, a lookup table by index.
+    `.trim(),
+    whenNotToUse: `
+If your program frequently inserts or removes items from the front or
+middle of a large collection, an array's O(n) shifting cost adds up — a
+linked list (or a different structure entirely) may be a better fit.
     `.trim(),
     commonMistakes: [
       "Repeatedly inserting or removing items from the front of a large array, which is slower than it looks.",
@@ -133,6 +164,7 @@ rather than insert them in the middle.
       { question: "Why is inserting into the middle of an array O(n)?", answer: "Because every element after the insertion point has to shift over by one position to make room." },
       { question: "When would you choose an array over a linked list?", answer: "When you need fast, random access to elements by index and don't need to frequently insert or remove items from the middle." },
     ],
+    prerequisites: ["big-o"],
     relatedTopics: ["big-o", "strings", "linked-lists"],
     keywords: ["array", "index", "contiguous memory", "insertion", "access time"],
   },
@@ -163,6 +195,13 @@ const reversed = word.split("").reverse().join("");
 console.log(reversed);       // "olleh"`,
         explanation:
           "`split(\"\")` breaks the string into an array of characters, `.reverse()` flips their order, and `.join(\"\")` glues them back into a string.",
+        walkthrough: [
+          { code: 'const word = "hello";', explanation: "Creates a string, five characters long." },
+          { code: "word[0]", explanation: "Reads the character at index 0, just like accessing an array." },
+          { code: 'word.split("")', explanation: "Breaks the string into an array of individual characters." },
+          { code: ".reverse()", explanation: "Reverses the order of that array of characters." },
+          { code: '.join("")', explanation: "Glues the reversed characters back into a single string." },
+        ],
       },
     ],
     howItWorks: `
@@ -175,6 +214,17 @@ string, leaving the original untouched.
 Text is everywhere — usernames, messages, file contents, search queries.
 Efficient string handling underpins search engines, spell checkers, text
 editors, and virtually every user-facing application.
+    `.trim(),
+    whenToUse: `
+You reach for string-specific thinking — immutability, character-by-
+character processing — whenever you're validating text, searching within
+it, or comparing two pieces of text for a relationship like being
+anagrams or palindromes.
+    `.trim(),
+    whenNotToUse: `
+For very large, frequently-modified text — building up a huge string
+piece by piece in a loop — repeated concatenation can be slow. Building
+an array of pieces and joining it once at the end is usually faster.
     `.trim(),
     commonMistakes: [
       "Trying to change a character in a string directly (e.g. `str[0] = \"H\"`) — this silently does nothing, since strings are immutable.",
@@ -191,6 +241,7 @@ editors, and virtually every user-facing application.
       { question: "How would you check if a string is a palindrome?", answer: "Compare it to its own reverse, or use two pointers moving from both ends toward the middle, checking that characters match at each step." },
       { question: "What's an efficient way to count character frequency in a string?", answer: "Use a hash table (or plain object) mapping each character to a running count, built in a single pass through the string." },
     ],
+    prerequisites: ["arrays"],
     relatedTopics: ["arrays", "hash-tables"],
     keywords: ["string", "immutable", "palindrome", "anagram", "character"],
   },
