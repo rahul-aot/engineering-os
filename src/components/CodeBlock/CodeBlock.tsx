@@ -28,19 +28,21 @@ export default function CodeBlock({ example }: CodeBlockProps) {
       )}
       <Box
         component="pre"
-        sx={{
-          m: 0,
-          p: 2,
-          borderRadius: 1.5,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: (theme) =>
-            theme.palette.mode === "dark" ? "grey.900" : "grey.50",
-          overflowX: "auto",
-          fontFamily: CODE_FONT_STACK,
-          fontSize: "0.85rem",
-          lineHeight: 1.65,
-        }}
+        sx={[
+          {
+            m: 0,
+            p: 2,
+            borderRadius: 1.5,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "grey.50",
+            overflowX: "auto",
+            fontFamily: CODE_FONT_STACK,
+            fontSize: "0.85rem",
+            lineHeight: 1.65,
+          },
+          (theme) => theme.applyStyles("dark", { bgcolor: "grey.900" }),
+        ]}
       >
         <code>{example.code}</code>
       </Box>
@@ -74,20 +76,22 @@ export default function CodeBlock({ example }: CodeBlockProps) {
             >
               <Box
                 component="code"
-                sx={{
-                  fontFamily: CODE_FONT_STACK,
-                  fontSize: "0.8rem",
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "grey.900" : "grey.50",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  px: 1,
-                  py: 0.5,
-                  whiteSpace: "pre",
-                  overflowX: "auto",
-                  maxWidth: { xs: 160, sm: 240 },
-                }}
+                sx={[
+                  {
+                    fontFamily: CODE_FONT_STACK,
+                    fontSize: "0.8rem",
+                    bgcolor: "grey.50",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    px: 1,
+                    py: 0.5,
+                    whiteSpace: "pre",
+                    overflowX: "auto",
+                    maxWidth: { xs: 160, sm: 240 },
+                  },
+                  (theme) => theme.applyStyles("dark", { bgcolor: "grey.900" }),
+                ]}
               >
                 {step.code}
               </Box>

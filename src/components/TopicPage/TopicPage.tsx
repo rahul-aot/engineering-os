@@ -9,7 +9,6 @@ import Divider from "@mui/material/Divider";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
-import { alpha } from "@mui/material/styles";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -170,13 +169,16 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
 
       <SectionHeading>Explain Like I'm 10</SectionHeading>
       <Box
-        sx={{
-          p: 2,
-          borderRadius: 1.5,
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          border: "1px solid",
-          borderColor: "divider",
-        }}
+        sx={[
+          {
+            p: 2,
+            borderRadius: 1.5,
+            bgcolor: "rgba(37, 99, 235, 0.08)",
+            border: "1px solid",
+            borderColor: "divider",
+          },
+          (theme) => theme.applyStyles("dark", { bgcolor: "rgba(96, 165, 250, 0.16)" }),
+        ]}
       >
         <Typography variant="body1" sx={{ fontStyle: "italic" }}>
           <InlineText text={topic.analogy} />
@@ -197,22 +199,24 @@ export default function TopicPage({ subject, topic }: TopicPageProps) {
       {topic.diagram && (
         <Box
           component="pre"
-          sx={{
-            mt: 2,
-            p: 2,
-            borderRadius: 1.5,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark" ? "grey.900" : "grey.50",
-            overflowX: "auto",
-            fontFamily:
-              'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-            fontSize: "0.8rem",
-            lineHeight: 1.6,
-            textAlign: "center",
-            color: "text.secondary",
-          }}
+          sx={[
+            {
+              mt: 2,
+              p: 2,
+              borderRadius: 1.5,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "grey.50",
+              overflowX: "auto",
+              fontFamily:
+                'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+              fontSize: "0.8rem",
+              lineHeight: 1.6,
+              textAlign: "center",
+              color: "text.secondary",
+            },
+            (theme) => theme.applyStyles("dark", { bgcolor: "grey.900" }),
+          ]}
         >
           {topic.diagram}
         </Box>
