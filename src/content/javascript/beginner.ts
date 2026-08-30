@@ -97,17 +97,129 @@ may not need JavaScript beyond a tiny script, if any.
       {
         question: "What is JavaScript used for?",
         answer:
-          "Making web pages interactive in the browser, and — via Node.js — building servers, tools, and scripts outside the browser too.",
+          "Making web pages interactive in the browser — validating forms, updating content, responding to clicks — and, via Node.js, building servers, command-line tools, and scripts outside the browser too.",
       },
       {
         question: "Is JavaScript the same as Java?",
         answer:
-          "No. They are different languages with different creators, syntax, and use cases. The similar name was originally a marketing decision.",
+          "No. They're unrelated languages with different creators, syntax, and use cases. The similar name was a marketing decision by Netscape in the 90s to ride Java's popularity, not a sign of shared heritage.",
       },
       {
         question: "Where does JavaScript code run?",
         answer:
-          "Primarily inside a browser's JavaScript engine, but also on servers via Node.js, and in various other runtimes.",
+          "Primarily inside a browser's built-in JavaScript engine, but also on servers and in tools via Node.js, and in other embedded runtimes (Deno, Bun, some IoT devices) — the language is the same everywhere; what differs is which extra APIs (DOM, file system, etc.) the environment provides.",
+      },
+      {
+        question: "Is JavaScript compiled or interpreted?",
+        answer:
+          "Neither in the traditional sense — modern engines like V8 use just-in-time (JIT) compilation: code is parsed and initially run through an interpreter, and any code path that runs often (\"hot\" code) gets compiled to optimized machine code on the fly. It's not compiled ahead of time like C++, but it's not purely line-by-line interpreted either.",
+      },
+      {
+        question: "What is the relationship between JavaScript and ECMAScript?",
+        answer:
+          "ECMAScript is the standardized specification (maintained by the TC39 committee) that defines the language's syntax and behavior. JavaScript is the most common implementation of that spec — in practice the two names are used almost interchangeably, and version names like ES6/ES2015 refer to specific yearly releases of the spec.",
+      },
+      {
+        question: "What is a JavaScript engine? Can you name one?",
+        answer:
+          "A program built into a browser or runtime that parses and executes JavaScript code according to the ECMAScript spec, plus its own performance optimizations. V8 (Chrome, Node.js), SpiderMonkey (Firefox), and JavaScriptCore (Safari) are the major ones.",
+      },
+      {
+        question: "Is JavaScript single-threaded?",
+        answer:
+          "Yes — the language itself runs one operation at a time on a single call stack. Apparent concurrency (timers, network requests, click handling) comes from the surrounding runtime (the browser's Web APIs, or Node's libuv), which hands finished work back to that one thread through the event loop.",
+      },
+      {
+        question: "What does it mean that JavaScript is dynamically typed?",
+        answer:
+          "A variable's type isn't declared ahead of time and can change as the program runs — `let x = 5; x = \"now text\";` is perfectly legal. The type lives with the value at any given moment, not with the variable itself.",
+      },
+      {
+        question: "What does it mean that JavaScript is weakly typed?",
+        answer:
+          "Many operations automatically convert values between types instead of raising an error — e.g. `\"5\" - 1` becomes `4` because `-` coerces the string to a number first. This is convenient in small cases but a frequent source of subtle bugs, which is part of why TypeScript exists.",
+      },
+      {
+        question: "What is Node.js, and how does it differ from JavaScript in a browser?",
+        answer:
+          "Node.js is a runtime for executing JavaScript outside the browser, built on the V8 engine plus its own APIs — file system access, networking, process control — instead of browser APIs like the DOM. The core language is identical; only the surrounding built-in objects differ.",
+      },
+      {
+        question: "What is `\"use strict\"`, and why would you use it?",
+        answer:
+          "A directive that opts a script or function into a stricter mode of JavaScript, turning common mistakes — like assigning to an undeclared variable — into thrown errors instead of silently doing something unintended. Modules and class bodies are strict mode automatically, even without writing it explicitly.",
+      },
+      {
+        question: "Why is JavaScript described as a multi-paradigm language?",
+        answer:
+          "It supports procedural code, object-oriented code (via prototypes and classes), and functional-style code (functions as first-class values, higher-order functions) without forcing any single style — a single program can freely mix all three.",
+      },
+      {
+        question: "What's the difference between client-side and server-side JavaScript?",
+        answer:
+          "Client-side JavaScript runs in the user's browser, manipulating the page and reacting to user events. Server-side JavaScript (via Node.js) runs on a server, handling things like databases, file access, and APIs. The language is the same; the responsibilities and available APIs differ.",
+      },
+      {
+        question: "Why do teams use tools like Babel or TypeScript alongside plain JavaScript?",
+        answer:
+          "Babel transpiles newer JavaScript syntax down to an older version so it runs in browsers that don't yet support the newest features. TypeScript adds a static type system checked before the code ever runs, then compiles down to plain JavaScript — neither replaces JavaScript, both build on top of it.",
+      },
+      {
+        question:
+          "Output-prediction: what does `console.log(typeof undeclaredVar)` print if `undeclaredVar` was never declared anywhere?",
+        answer:
+          "It logs `\"undefined\"` rather than throwing a `ReferenceError`. `typeof` is specifically designed to be safe on identifiers that don't exist at all — one of the very few operations in JavaScript that doesn't throw on a missing variable.",
+      },
+      {
+        question: "Is JavaScript case-sensitive?",
+        answer:
+          "Yes — `myVariable` and `myvariable` are two completely different identifiers, and every keyword must be written in its exact casing.",
+      },
+      {
+        question: "Why do some JavaScript files use semicolons and others don't?",
+        answer:
+          "JavaScript has Automatic Semicolon Insertion (ASI), which inserts missing semicolons for you at line breaks under certain rules, so code without explicit semicolons often still runs correctly. ASI has edge cases — like a line starting with `(` or `[` merging with the previous line — that can silently change meaning, which is why many style guides still write semicolons explicitly.",
+      },
+      {
+        question: "Who created JavaScript, and why does that history come up in interviews?",
+        answer:
+          "Brendan Eich created it at Netscape in 1995, reportedly in about ten days. That rushed origin explains several of the language's inconsistent design choices (like `typeof null` being `\"object\"`) that persist today purely for backward compatibility.",
+      },
+      {
+        question: "What's the difference between \"JavaScript\" and \"ES6\"/\"ES2015+\"?",
+        answer:
+          "ES6 (also called ES2015) is one specific yearly release of the ECMAScript spec that introduced major features like `let`/`const`, arrow functions, classes, and promises. \"JavaScript\" refers to the language as a whole across every one of these yearly spec updates, past and future.",
+      },
+      {
+        question: "Can JavaScript run without a browser?",
+        answer:
+          "Yes — Node.js, Deno, Bun, and various embedded scripting engines all run JavaScript entirely outside any browser context.",
+      },
+      {
+        question: "What's the difference between the DOM and JavaScript itself?",
+        answer:
+          "The DOM is a browser-provided object representation of a page's HTML structure; JavaScript is the language used to read and change it. The language itself has no built-in idea of a webpage — the DOM API is something the browser environment adds on top.",
+      },
+      {
+        question:
+          "Scenario: a team is choosing between vanilla JavaScript and a framework like React. What does JavaScript itself provide, and what does the framework add?",
+        answer:
+          "JavaScript provides the core language — variables, functions, control flow, and, in the browser, direct DOM APIs for finding and changing elements by hand. A framework adds a structured way to build UI out of reusable components and a more efficient system for updating the DOM as data changes — but it's still generating and running plain JavaScript underneath.",
+      },
+      {
+        question: "Why can the same JavaScript code sometimes behave slightly differently across browsers?",
+        answer:
+          "Each browser ships its own engine and its own implementation of Web APIs (DOM, `fetch`, storage). Core language behavior is nearly identical thanks to the shared ECMAScript spec, but engine-specific performance quirks, timing details, or not-yet-implemented newer syntax can still cause visible differences.",
+      },
+      {
+        question: "What is JSON's relationship to JavaScript, given the name?",
+        answer:
+          "JSON's syntax was inspired by JavaScript's object and array literals, but JSON is a language-independent, text-based data format used across nearly every programming language — it isn't JavaScript code, and parsing it never executes anything.",
+      },
+      {
+        question: "How does JavaScript's execution model compare to a language like Python's?",
+        answer:
+          "Both are typically run by an interpreter/JIT rather than compiled fully ahead of time, but JavaScript was designed specifically to be embedded in a host environment (a browser or Node.js) and relies entirely on that host for I/O — the language spec itself defines no built-in way to read a file or make a network request.",
       },
     ],
     relatedTopics: ["variables", "functions"],
