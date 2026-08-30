@@ -41,6 +41,24 @@ waitOneSecond()
           { code: ".catch((error) => ...)", explanation: "Runs only if the promise is rejected instead of resolved." },
         ],
       },
+      {
+        title: "A promise that can reject",
+        code: `function fetchUser(id) {
+  return new Promise((resolve, reject) => {
+    if (id <= 0) {
+      reject(new Error("Invalid user id"));
+      return;
+    }
+    resolve({ id, name: "Amara" });
+  });
+}
+
+fetchUser(-1)
+  .then((user) => console.log(user))
+  .catch((error) => console.log("Failed:", error.message)); // "Failed: Invalid user id"`,
+        explanation:
+          "`reject(...)` settles the promise as failed instead of successful, and control jumps straight to `.catch()`, skipping `.then()` entirely.",
+      },
     ],
     howItWorks: `
 A promise starts in a "pending" state. When the task finishes, it either
@@ -227,6 +245,20 @@ console.log("3: end");
           { code: "// 2: timeout callback", explanation: "Only runs once the current code finishes and the call stack is completely empty." },
         ],
       },
+      {
+        title: "Promises run before timers",
+        code: `console.log("1: start");
+
+setTimeout(() => console.log("2: setTimeout"), 0);
+
+Promise.resolve().then(() => console.log("3: promise"));
+
+console.log("4: end");
+
+// Output order: 1, 4, 3, 2`,
+        explanation:
+          "Promise callbacks (microtasks) are always drained before the next timer callback (a macrotask) runs, even if both were scheduled at roughly the same time.",
+      },
     ],
     howItWorks: `
 JavaScript runs your main code on something called the **call stack**. When
@@ -321,6 +353,24 @@ dog.speak(); // "Rex makes a sound."
           { code: 'dog.name = "Rex";', explanation: "Adds an own property, name, directly on dog." },
           { code: "dog.speak();", explanation: "dog has no speak of its own, so JavaScript finds it on animal via the prototype chain." },
         ],
+      },
+      {
+        title: "class syntax uses prototypes underneath",
+        code: `class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    console.log(this.name + " makes a sound.");
+  }
+}
+
+const cat = new Animal("Whiskers");
+cat.speak(); // "Whiskers makes a sound."
+
+console.log(Object.getPrototypeOf(cat) === Animal.prototype); // true`,
+        explanation:
+          "`speak` is defined once, on `Animal.prototype`, and every instance created with `new Animal(...)` shares that same method through the prototype chain — it isn't copied per instance.",
       },
     ],
     howItWorks: `
@@ -493,6 +543,17 @@ console.log([1, 2] + [3, 4]);  // "1,23,4"`,
           { code: "[] + []", explanation: "Arrays get converted to strings for +, and an empty array becomes an empty string." },
         ],
       },
+      {
+        title: "More surprises: closures in loops, and array holes",
+        code: `for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}
+// logs: 3, 3, 3 — not 0, 1, 2 (all three closures share the same "var i")
+
+console.log([1, , 3].length); // 3 — the missing middle slot still counts`,
+        explanation:
+          "Using `var` in the loop means every callback closes over the exact same variable, which has already finished looping by the time the callbacks run — switching to `let` fixes it, since each iteration gets its own binding.",
+      },
     ],
     howItWorks: `
 Each of these traces back to a specific rule: floating-point numbers are
@@ -580,6 +641,34 @@ fails, run this other code instead of crashing."
           { code: "} finally {", explanation: "Runs no matter what — whether try succeeded or catch ran." },
         ],
       },
+      {
+        title: "A custom error class",
+        code: `class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+function setAge(age) {
+  if (age < 0) {
+    throw new ValidationError("Age can't be negative");
+  }
+  return age;
+}
+
+try {
+  setAge(-5);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log("Validation failed:", error.message);
+  } else {
+    throw error; // an error we didn't expect — let it propagate
+  }
+}`,
+        explanation:
+          "Custom error classes let a `catch` block tell different kinds of failures apart with `instanceof`, instead of treating every error the same way.",
+      },
     ],
     howItWorks: `
 When code inside \`try\` throws (either automatically, from a failing
@@ -660,6 +749,22 @@ console.log(PI);        // 3.14159`,
           { code: "add(2, 3);", explanation: "Uses the imported function exactly like a locally defined one." },
         ],
       },
+      {
+        title: "A default export",
+        code: `// user.js
+export default class User {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+// app.js
+import User from "./user.js"; // any name works for a default import
+
+const amara = new User("Amara");`,
+        explanation:
+          "A module can have at most one default export, and the importer is free to name it whatever they like — unlike named exports, which must be imported by their exact name.",
+      },
     ],
     howItWorks: `
 Each file is its own module with its own private scope — nothing inside
@@ -735,6 +840,22 @@ user = null;
           { code: "user = null;", explanation: "Removes the only reference to that object." },
           { code: "// eligible for garbage collection", explanation: "With nothing left pointing to it, the object can be safely cleaned up." },
         ],
+      },
+      {
+        title: "A common leak: a forgotten timer",
+        code: `function startPolling(element) {
+  const id = setInterval(() => {
+    element.textContent = new Date().toLocaleTimeString();
+  }, 1000);
+
+  return () => clearInterval(id); // caller must call this to stop it
+}
+
+const stopPolling = startPolling(document.querySelector("#clock"));
+// ...later, when the clock is no longer needed:
+stopPolling();`,
+        explanation:
+          "As long as `setInterval` keeps running, its callback (and everything it closes over, including `element`) stays reachable — forgetting to call `clearInterval` is one of the most common real-world memory leaks.",
       },
     ],
     howItWorks: `
@@ -826,6 +947,19 @@ console.log(count ?? 10); // 0 — right! ?? only replaces null/undefined`,
           { code: "count ?? 10", explanation: "Keeps 0, because ?? only falls back on null or undefined, not on every falsy value." },
         ],
       },
+      {
+        title: "Optional chaining with function calls and arrays",
+        code: `const api = {
+  getUser: null, // maybe not loaded yet
+};
+
+api.getUser?.(1);      // undefined — skipped, doesn't throw
+
+const users = null;
+console.log(users?.[0]); // undefined — safe even though users isn't an object at all`,
+        explanation:
+          "`?.()` guards a function call that might not exist, and `?.[...]` guards array/bracket access the same way `?.` guards a plain property.",
+      },
     ],
     howItWorks: `
 \`?.\` checks whether the value immediately to its left is \`null\` or
@@ -905,6 +1039,18 @@ console.log(parsed.name); // "Amara" — back to a real object`,
           { code: "console.log(json);", explanation: "That text can now be sent over a network or saved to a file." },
           { code: "JSON.parse(json);", explanation: "Converts JSON text back into a real JavaScript object." },
         ],
+      },
+      {
+        title: "Saving and restoring data with localStorage",
+        code: `const settings = { theme: "dark", fontSize: 16 };
+
+localStorage.setItem("settings", JSON.stringify(settings));
+
+// ...later, maybe after a page reload:
+const saved = JSON.parse(localStorage.getItem("settings"));
+console.log(saved.theme); // "dark"`,
+        explanation:
+          "`localStorage` can only store strings, so JSON is the standard way to save a structured object into it and read a real object back out later.",
       },
     ],
     howItWorks: `
@@ -987,6 +1133,15 @@ console.log(uniqueNumbers.has(2)); // true`,
           { code: "scores.size", explanation: "A real property that always reflects the current number of entries." },
           { code: "new Set([1, 2, 2, 3, 3, 3]);", explanation: "Automatically drops duplicate values, keeping each unique value only once." },
         ],
+      },
+      {
+        title: "Removing duplicates from an array with Set",
+        code: `const numbers = [1, 2, 2, 3, 1, 4];
+
+const unique = [...new Set(numbers)];
+console.log(unique); // [1, 2, 3, 4]`,
+        explanation:
+          "Spreading a Set back into an array is a common one-line pattern for deduplicating an array while preserving the first occurrence of each value.",
       },
     ],
     howItWorks: `
