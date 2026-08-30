@@ -5,9 +5,12 @@ import Collapse from "@mui/material/Collapse";
 import Typography from "@mui/material/Typography";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ReplayIcon from "@mui/icons-material/Replay";
+import type { ProblemExample } from "../../types/problem";
+import { buildAutoRunHarness } from "./autoRunHarness";
 
 interface CodePlaygroundProps {
   code: string;
+  testCases?: ProblemExample[];
 }
 
 const CODE_FONT_STACK =
@@ -63,7 +66,7 @@ const SANDBOX_HTML = `<!doctype html><html><body><button>Sample button</button><
  * Executes entirely inside a sandboxed iframe with no same-origin access,
  * so it can't reach this app's data — it's just a scratch environment.
  */
-export default function CodePlayground({ code }: CodePlaygroundProps) {
+export default function CodePlayground({ code, testCases }: CodePlaygroundProps) {
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState(code);
   const [output, setOutput] = useState<OutputLine[]>([]);
@@ -93,11 +96,12 @@ export default function CodePlayground({ code }: CodePlaygroundProps) {
     if (!iframe?.contentWindow) return;
     setOutput([]);
     setRunning(true);
-    iframe.contentWindow.postMessage({ type: "run", code: source }, "*");
+    const harness = buildAutoRunHarness(source, testCases);
+    iframe.contentWindow.postMessage({ type: "run", code: source + harness }, "*");
     // Nothing else logs "finished" — if the code never calls console.*,
     // just clear the running indicator shortly after.
     setTimeout(() => setRunning(false), 500);
-  }, [source]);
+  }, [source, testCases]);
 
   const reset = useCallback(() => {
     setSource(code);
@@ -182,7 +186,9 @@ export default function CodePlayground({ code }: CodePlaygroundProps) {
           >
             {output.length === 0 ? (
               <Typography component="span" variant="body2" sx={{ color: "text.disabled", fontStyle: "italic" }}>
-                Output will appear here — try adding a console.log(...).
+                {testCases && testCases.length > 0
+                  ? "Click Run to see this solution's output for the examples above."
+                  : "Output will appear here — try adding a console.log(...)."}
               </Typography>
             ) : (
               output.map((line, i) => (
