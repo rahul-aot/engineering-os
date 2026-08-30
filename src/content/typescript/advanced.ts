@@ -276,7 +276,7 @@ a fully-typed TypeScript module.
 You'll encounter these in two common ways: many popular libraries ship
 their own \`.d.ts\` files describing themselves, and for libraries that
 don't, the community-maintained \`DefinitelyTyped\` project publishes
-separate \`@types/\<package-name\>\` packages containing hand-written
+separate \`@types/<package-name>\` packages containing hand-written
 declaration files for them.
     `.trim(),
     analogy:
@@ -313,7 +313,7 @@ A \`.d.ts\` file uses the \`declare\` keyword to describe things that exist
 elsewhere at runtime — functions, variables, classes, whole modules —
 without providing their actual implementation. When you import from a
 \`.js\` file that has a matching \`.d.ts\` file nearby (or a separately
-installed \`@types/\<package\>\` package), the TypeScript compiler reads
+installed \`@types/<package>\` package), the TypeScript compiler reads
 the declaration file to learn the shapes involved, and checks all your
 usage against those shapes. At compile time, the \`.d.ts\` file is purely
 informational for the type checker; it produces no JavaScript output of

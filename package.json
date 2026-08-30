@@ -3,6 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Learn once. Understand deeply. Never start from zero again. A personal, content-driven software-engineering knowledge base.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rahul-aot/engineering-os.git"
+  },
+  "homepage": "https://github.com/rahul-aot/engineering-os#readme",
+  "bugs": {
+    "url": "https://github.com/rahul-aot/engineering-os/issues"
+  },
   "scripts": {
     "start" : "vite",
     "dev": "vite",
