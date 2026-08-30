@@ -428,4 +428,181 @@ sign it should be a separate, referenced collection instead.
     relatedTopics: ["normalization", "joins"],
     keywords: ["NoSQL", "document database", "embedding", "referencing", "MongoDB", "denormalization"],
   },
+  {
+    id: "window-functions",
+    title: "Window Functions",
+    level: "advanced",
+    description: "Calculations across a set of related rows — like a running total or a rank — without collapsing them into a single row the way GROUP BY does.",
+    explanation: `
+Aggregation answers "one summary value per group" by collapsing rows
+together — one row per customer, one row per category. But sometimes
+you want a per-row value that's still calculated *using* its group as
+context, while keeping every original row: "each order, plus that
+customer's running total so far," or "each product's price, plus its
+rank within its category."
+
+A **window function** does exactly this, using \`OVER (...)\`, optionally
+with \`PARTITION BY\` (which rows count as a group) and \`ORDER BY\` (their
+order within that group). Unlike \`GROUP BY\`, it doesn't merge rows —
+every original row stays in the output, just with an extra computed
+column alongside it.
+    `.trim(),
+    analogy:
+      "GROUP BY is like handing a customer one combined receipt total. A window function is like handing back every individual line item, but with a running total (or a rank against everything else they bought) printed on each line — nothing gets merged away, each line just gets extra context.",
+    examples: [
+      {
+        title: "Ranking within a partition",
+        code: `SELECT name, category, price,
+  RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank
+FROM products;`,
+        explanation: "Every product row is kept, but each one now also shows where its price ranks within its own category, highest first.",
+        walkthrough: [
+          { code: "PARTITION BY category", explanation: "Defines the 'window' of rows each ranking is computed within — restarting the count for every new category, instead of ranking across the whole table." },
+          { code: "ORDER BY price DESC", explanation: "Decides the order within each partition that RANK() counts through." },
+          { code: "RANK() OVER (...)", explanation: "Computes the rank for the current row using that partition and order, while still returning every row from products, not just the top one per category." },
+        ],
+      },
+      {
+        title: "A running total",
+        code: `SELECT id, amount,
+  SUM(amount) OVER (ORDER BY id) AS running_total
+FROM payments;`,
+        explanation: "Each row shows its own amount plus the cumulative sum of every row up to and including it, ordered by id — no GROUP BY, and no rows merged together.",
+      },
+    ],
+    howItWorks: `
+For each output row, the database determines its "window" — the other
+rows that belong with it, from \`PARTITION BY\`, in the order given by
+\`ORDER BY\` — and computes the function (\`RANK\`, \`SUM\`, \`ROW_NUMBER\`,
+\`LAG\`/\`LEAD\`, and others) over that window. Critically, the original
+row is still returned as-is; the window function's result is just an
+extra column added alongside it, which is the core difference from
+\`GROUP BY\`, which discards the individual rows entirely in favor of one
+row per group.
+    `.trim(),
+    whyItExists: `
+Without window functions, something like "rank within category" or "a
+running total" required a self-join or a correlated subquery per row —
+verbose to write and slow at scale, since the database effectively has
+to reprocess related rows for every single output row by hand instead
+of computing it in one pass.
+    `.trim(),
+    whenToUse: `
+Reach for a window function for leaderboards and rankings, running
+totals or moving averages, comparing a row to the previous or next one
+(\`LAG\`/\`LEAD\`), or "top N rows per group" queries.
+    `.trim(),
+    whenNotToUse: `
+If you genuinely want one summarized row per group, with the individual
+rows discarded, plain \`GROUP BY\` aggregation is simpler and says exactly
+that — a window function that keeps every row is the wrong tool when you
+don't actually need every row.
+    `.trim(),
+    commonMistakes: [
+      "Forgetting PARTITION BY entirely, which computes the ranking or total across the whole table instead of restarting it per group.",
+      "Confusing RANK (leaves gaps in the numbering after ties), DENSE_RANK (no gaps after ties), and ROW_NUMBER (always a unique sequential number, ties broken arbitrarily).",
+      "Trying to filter directly on a window function's result in a WHERE clause, which isn't allowed — WHERE is evaluated before window functions are computed.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write a query using ROW_NUMBER() to number each customer's orders in the order they were placed." },
+      { difficulty: "Medium", prompt: "Write a query that shows each employee's salary along with their salary rank within their own department." },
+      { difficulty: "Hard", prompt: "Explain why WHERE price_rank = 1 fails directly after a window function that computes price_rank, and rewrite the query using a CTE so it works." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between GROUP BY and a window function?", answer: "GROUP BY collapses rows into a single summary row per group; a window function keeps every original row while still computing a value using that row's group as context." },
+      { question: "What's the difference between RANK, DENSE_RANK, and ROW_NUMBER?", answer: "RANK leaves gaps in the numbering after a tie, DENSE_RANK doesn't leave gaps, and ROW_NUMBER always assigns a unique sequential number regardless of ties." },
+      { question: "Why can't you filter on a window function's result directly in a WHERE clause?", answer: "WHERE is evaluated before window functions are computed, so the value doesn't exist yet at that stage — you need to wrap the query in a subquery or CTE and filter in the outer query instead." },
+    ],
+    prerequisites: ["aggregation", "subqueries-and-ctes"],
+    relatedTopics: ["aggregation", "subqueries-and-ctes", "joins"],
+    keywords: ["window function", "OVER", "PARTITION BY", "RANK", "ROW_NUMBER", "running total", "LAG", "LEAD"],
+  },
+  {
+    id: "upsert-and-conflicts",
+    title: "Upsert & Conflict Handling",
+    level: "advanced",
+    description: "Inserting a row, or updating it instead if it already exists, in a single atomic statement.",
+    explanation: `
+Sometimes you don't know in advance whether a row already exists — like
+syncing a record from an external system, or incrementing a page-view
+counter that may or may not have started yet. Doing a \`SELECT\` to check,
+then an \`INSERT\` or \`UPDATE\` depending on the result, isn't safe: two
+requests running at the same time could both see "it doesn't exist yet"
+and both try to insert, causing a duplicate-key error or one update
+silently overwriting the other.
+
+An **upsert** (\`INSERT ... ON CONFLICT\` in Postgres, \`MERGE\` in
+standard SQL and SQL Server) does the check-and-write as a single
+atomic database operation, removing that race condition entirely.
+    `.trim(),
+    analogy:
+      "It's like a hotel front desk that either creates a new reservation or updates the existing one for that guest in one motion — rather than an agent looking the guest up, stepping away, and someone else double-booking the same room in the gap before the agent comes back to act on what they saw.",
+    examples: [
+      {
+        title: "Insert, or update the existing row on conflict",
+        code: `INSERT INTO page_views (page_id, views)
+VALUES ('home', 1)
+ON CONFLICT (page_id)
+DO UPDATE SET views = page_views.views + 1;`,
+        explanation: "If no row exists for 'home' yet, it's inserted with 1 view; if one already exists, its views column is incremented instead — atomically, with no gap for a race condition.",
+        walkthrough: [
+          { code: "INSERT INTO page_views (page_id, views) VALUES ('home', 1)", explanation: "Attempts a normal insert, as if no row for this page_id existed yet." },
+          { code: "ON CONFLICT (page_id)", explanation: "Names the unique constraint (here, on page_id) to watch for — if the insert would violate it, run the fallback instead of raising an error." },
+          { code: "DO UPDATE SET views = page_views.views + 1", explanation: "Runs against the existing row instead — page_views.views here refers to the value already in the table, not the attempted new row." },
+        ],
+      },
+      {
+        title: "Ignore instead of update",
+        code: `INSERT INTO users (email, name)
+VALUES ('a@example.com', 'Alice')
+ON CONFLICT (email) DO NOTHING;`,
+        explanation: "If a user with this email already exists, the statement simply does nothing instead of erroring or overwriting the existing row — useful for safe, repeatable deduplication.",
+      },
+    ],
+    howItWorks: `
+The database attempts the insert as normal. If it would violate a
+unique constraint or primary key named in \`ON CONFLICT\`, instead of
+raising an error, it runs the specified fallback (\`DO UPDATE\` or
+\`DO NOTHING\`) against the conflicting existing row — all as one atomic
+operation. Because it's atomic, no other transaction can slip a
+conflicting write in between "checking" and "writing," which is exactly
+what a separate SELECT-then-INSERT in application code can't guarantee.
+    `.trim(),
+    whyItExists: `
+It exists to remove the race condition inherent in "check, then act"
+logic written in application code, and to avoid the extra round trip of
+a separate SELECT before deciding whether to INSERT or UPDATE.
+    `.trim(),
+    whenToUse: `
+Reach for an upsert when syncing external data that may or may not
+already exist, maintaining counters, building "create or update
+settings" endpoints, or deduplicating on a unique column like an email
+address.
+    `.trim(),
+    whenNotToUse: `
+When insert and update should trigger genuinely different application
+behavior — like sending a "welcome" email only on true creation — an
+upsert makes it harder to tell which branch actually happened unless you
+inspect what the statement returned; explicit, separate insert and
+update logic can be clearer there.
+    `.trim(),
+    commonMistakes: [
+      "Naming a column in ON CONFLICT that isn't backed by an actual unique constraint or primary key — Postgres requires a real constraint to detect the conflict against.",
+      "Forgetting that DO UPDATE must reference the table name (like page_views.views) to mean 'the existing row's value,' not the newly attempted one.",
+      "Continuing to use separate SELECT-then-INSERT/UPDATE application logic in a case with real concurrency, and hitting rare but genuine race conditions an upsert would have avoided.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write an upsert that inserts a product by sku, or increments its stock count if that sku already exists." },
+      { difficulty: "Medium", prompt: "Write an upsert using ON CONFLICT DO NOTHING to safely deduplicate email signups." },
+      { difficulty: "Hard", prompt: "Walk through, step by step, how two simultaneous requests using separate SELECT-then-INSERT logic (without an upsert) could both succeed and create two rows despite an intended uniqueness rule." },
+    ],
+    interviewQuestions: [
+      { question: "What problem does an upsert solve that a SELECT followed by INSERT or UPDATE doesn't?", answer: "It removes the race condition between checking whether a row exists and writing to it, by making the whole check-and-write a single atomic database operation." },
+      { question: "What must the column(s) named in ON CONFLICT correspond to?", answer: "An actual unique constraint or primary key on the target table — not just any column." },
+      { question: "What's the difference between ON CONFLICT DO NOTHING and DO UPDATE?", answer: "DO NOTHING silently skips the write when a conflict occurs; DO UPDATE overwrites fields on the existing conflicting row instead." },
+    ],
+    prerequisites: ["transactions-and-acid"],
+    relatedTopics: ["transactions-and-acid", "basic-sql-queries"],
+    keywords: ["upsert", "ON CONFLICT", "MERGE", "race condition", "atomic", "idempotent write"],
+  },
 ];

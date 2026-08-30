@@ -554,4 +554,367 @@ apply to an HTTP-based backend, though extremely different systems
     relatedTopics: ["routing", "middleware", "error-handling-apis"],
     keywords: ["request lifecycle", "response cycle", "http flow"],
   },
+  {
+    id: "nodejs-runtime",
+    title: "How Node.js Works",
+    level: "beginner",
+    description: "The JavaScript runtime that lets JavaScript run outside a browser, and the single-threaded, event-driven model behind it.",
+    explanation: `
+JavaScript was originally built to run inside a browser, reacting to
+clicks and typing. **Node.js** is a runtime that lets the same language
+run anywhere else — on a server, handling incoming HTTP requests instead
+of clicks. It does this by pairing Chrome's **V8** engine (which turns
+JavaScript into fast machine instructions) with extra capabilities a
+browser doesn't need, like reading files from disk or opening network
+connections.
+
+The part that surprises people most is that Node runs your JavaScript on
+a **single thread** — it can only execute one line of your code at a
+time. It stays fast under load anyway because most of what a backend
+does (reading a file, querying a database, waiting for a network
+response) is *waiting*, not computing. Instead of blocking that one
+thread while it waits, Node hands the waiting off and moves on to other
+work, coming back to your code only once the result is ready. That
+loop — run some code, hand off anything that waits, run whatever's ready
+next — is the **event loop**.
+    `.trim(),
+    analogy:
+      "Node.js is like a single waiter working an entire restaurant. Instead of standing at one table until the kitchen finishes that order, the waiter takes the order, moves straight to the next table, and comes back to serve each dish the moment it's ready. One waiter can serve far more tables this way than by camping out at each one — as long as no single task (like arguing with a customer for twenty minutes) hogs the waiter's attention.",
+    examples: [
+      {
+        title: "Blocking vs. non-blocking file reads",
+        code: `const fs = require("fs");
+
+// Blocking: nothing else runs until this finishes
+const data = fs.readFileSync("large-file.txt");
+console.log("done reading");
+
+// Non-blocking: Node moves on immediately, and runs
+// this callback later, once the file is ready
+fs.readFile("large-file.txt", (err, data) => {
+  console.log("done reading");
+});
+console.log("this logs first, before the read finishes");`,
+        explanation: "The sync version freezes the single thread until the disk read completes; the async version hands the read off and keeps running other code, coming back only when the result is ready.",
+        walkthrough: [
+          { code: "fs.readFileSync(...)", explanation: "Blocks — the entire process waits here, unable to do anything else, until the file is fully read." },
+          { code: "fs.readFile(..., callback)", explanation: "Starts the read and returns immediately, letting the rest of the program continue." },
+          { code: '"this logs first..."', explanation: "Proves the non-blocking call didn't wait: the line after it runs before the callback does." },
+        ],
+      },
+      {
+        title: "Why this matters for a server",
+        code: `app.get("/report", (req, res) => {
+  // While this database query is pending, Node is
+  // free to handle other incoming requests on the
+  // same single thread.
+  db.query("SELECT * FROM big_table", (err, rows) => {
+    res.json(rows);
+  });
+});`,
+        explanation: "A slow database query for one user doesn't block the server from responding to other users in the meantime — the thread isn't sitting idle waiting for that query.",
+      },
+    ],
+    howItWorks: `
+Node runs your JavaScript on one main thread. When your code calls
+something that involves waiting — reading a file, querying a database,
+making an HTTP request — Node doesn't do that waiting on the main
+thread itself. It hands the work off (to the operating system, or to a
+background thread pool inside Node called *libuv*) and immediately
+continues running whatever JavaScript comes next.
+
+Once that background work finishes, its callback (or promise) is placed
+in a queue. The **event loop** is the process that continuously checks:
+"is the main thread free, and is there a finished callback waiting?" —
+and when both are true, it runs that callback. This is why a single
+Node process can have thousands of database queries or file reads "in
+flight" at once, even though it only ever executes one line of your
+JavaScript at any given instant.
+    `.trim(),
+    diagram: `
+ Your code            Background (libuv / OS)
+ ─────────            ───────────────────────
+ fs.readFile() ──────▶  reading disk...
+    │
+    ▼
+ (keeps running
+  other requests)
+                        disk read finishes
+                              │
+                              ▼
+ callback queued ◀────────────
+    │
+    ▼
+ event loop runs it
+ once the thread is free
+    `.trim(),
+    whyItExists: `
+Traditional server designs often gave each incoming connection its own
+thread, which works but gets expensive — thousands of connections mean
+thousands of threads, each with real memory and scheduling overhead.
+Node exists to handle huge numbers of *I/O-bound* connections (network
+and disk work, not heavy computation) efficiently on a single thread, by
+never letting the thread sit idle waiting for something slow.
+    `.trim(),
+    whenToUse: `
+Node is a strong fit for backends that spend most of their time waiting
+on I/O — REST APIs, real-time apps (chat, live dashboards), and services
+that mostly shuttle data between a client and a database or another
+service.
+    `.trim(),
+    whenNotToUse: `
+Node struggles with CPU-heavy work — image or video processing, large
+in-memory computation, cryptographic hashing of huge payloads — because
+that kind of work occupies the single thread and blocks everything else
+until it finishes. For that, you'd offload the work to worker threads, a
+separate service, or a language built around multi-threaded computation.
+    `.trim(),
+    commonMistakes: [
+      "Running a long, synchronous, CPU-heavy loop inside a request handler, which freezes the entire server for every other user until it finishes.",
+      "Assuming Node is multi-threaded because it can 'handle' many requests at once — it's the waiting, not your actual JavaScript, that happens concurrently.",
+      "Using a synchronous file system method (like `readFileSync`) inside a request handler in a production server, blocking every other request while it runs.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Explain, in one sentence, why fs.readFile lets other code run sooner than fs.readFileSync." },
+      { difficulty: "Medium", prompt: "Write a small snippet with three console.log calls — one before, one inside a setTimeout callback, and one after — and predict the order they print in." },
+      { difficulty: "Hard", prompt: "Explain why a single expensive, synchronous loop (like sorting a huge array) inside one request handler would slow down responses to every other concurrent user, even though Node is handling many requests." },
+    ],
+    interviewQuestions: [
+      { question: "Is Node.js single-threaded or multi-threaded?", answer: "Your JavaScript runs on a single main thread, but Node offloads I/O work (file access, network calls) to the operating system or a background thread pool, so it can appear to handle many things concurrently." },
+      { question: "What is the event loop?", answer: "The mechanism that continuously checks whether the main thread is free and whether any background work has finished, and runs the corresponding callback when both are true." },
+      { question: "Why is a CPU-heavy operation bad for Node.js performance?", answer: "It occupies the single main thread directly, so nothing else — including responses to other users — can run until it finishes, unlike I/O work which is handed off elsewhere while it waits." },
+    ],
+    prerequisites: ["servers-and-web-frameworks"],
+    relatedTopics: ["servers-and-web-frameworks", "request-response-lifecycle", "background-jobs"],
+    keywords: ["Node.js", "event loop", "non-blocking I/O", "V8", "single-threaded", "libuv", "runtime"],
+  },
+  {
+    id: "project-structure",
+    title: "Backend Project Structure",
+    level: "beginner",
+    description: "The folder and file layout that keeps routes, business logic, and data access separated as a backend app grows.",
+    explanation: `
+A backend with two or three routes can live comfortably in a single
+file. But add validation, error handling, a database, and a dozen more
+endpoints, and that one file turns into hundreds of lines mixing three
+very different concerns: parsing HTTP requests, deciding what should
+actually happen, and talking to the database.
+
+**Project structure** is how you split those concerns into folders so
+each piece of code has one clear job and a predictable place to live —
+commonly \`routes/\` (which URLs exist), \`controllers/\` (translate a
+request into a plain function call and a response), \`services/\` (the
+actual business logic), and \`models/\` (talking to the database).
+    `.trim(),
+    analogy:
+      "Think of a restaurant kitchen: the host at the door (routes) decides which table a guest goes to, the server (controller) takes the order and carries it back, the chef (service) actually cooks using the recipe, and the pantry (model) is where the raw ingredients live. Each role could technically be done by one overworked person, but splitting them is what lets a kitchen serve more than a handful of tables without chaos.",
+    examples: [
+      {
+        title: "Before: everything in one file",
+        code: `// server.js — every concern tangled together
+app.post("/users", async (req, res) => {
+  if (!req.body.email || !req.body.email.includes("@")) {
+    return res.status(400).json({ error: "invalid email" });
+  }
+  const existing = await db.query("SELECT * FROM users WHERE email = $1", [req.body.email]);
+  if (existing.rows.length > 0) {
+    return res.status(409).json({ error: "email taken" });
+  }
+  const result = await db.query(
+    "INSERT INTO users (email) VALUES ($1) RETURNING *",
+    [req.body.email]
+  );
+  res.status(201).json(result.rows[0]);
+});`,
+        explanation: "Validation, business rules, and raw SQL are all crammed into the route itself — fine for one endpoint, unmanageable once there are fifty.",
+      },
+      {
+        title: "After: split across layers",
+        code: `// routes/users.js
+router.post("/users", usersController.create);
+
+// controllers/usersController.js
+async function create(req, res) {
+  const user = await usersService.createUser(req.body.email);
+  res.status(201).json(user);
+}
+
+// services/usersService.js
+async function createUser(email) {
+  if (!email.includes("@")) throw new ValidationError("invalid email");
+  if (await usersModel.findByEmail(email)) throw new ConflictError("email taken");
+  return usersModel.insert(email);
+}
+
+// models/usersModel.js
+function findByEmail(email) {
+  return db.query("SELECT * FROM users WHERE email = $1", [email]);
+}`,
+        explanation: "Each file now has one job: the route maps a URL to a controller, the controller only translates HTTP in and out, the service holds the actual rule ('emails must be unique'), and the model is the only place that knows any SQL.",
+        walkthrough: [
+          { code: "routes/users.js", explanation: "Declares which URL and method trigger this behavior, and hands off immediately — no logic here." },
+          { code: "controllers/usersController.js", explanation: "Reads what it needs from the request, calls into the service, and shapes the HTTP response — no business rules or SQL." },
+          { code: "services/usersService.js", explanation: "Holds the actual decision-making ('is this email valid and unique?') — reusable from anywhere, not tied to HTTP at all." },
+          { code: "models/usersModel.js", explanation: "The only file that knows how a user is actually stored — if you swapped databases, this is the only layer that would need to change." },
+        ],
+      },
+    ],
+    howItWorks: `
+A request flows down through the layers and the response flows back up:
+the route matches a URL to a controller function, the controller pulls
+out what it needs from the request and calls a service, the service
+applies business rules and calls a model when it needs data, and the
+model is the only layer that actually knows how that data is stored.
+Each layer only talks to the one directly below it, which is what makes
+it possible to change one layer (like swapping databases) without
+rewriting the others.
+    `.trim(),
+    diagram: `
+Route  →  Controller  →  Service  →  Model  →  Database
+(URL)     (HTTP in/out)  (business    (data
+                          rules)       access)
+    `.trim(),
+    whyItExists: `
+Without any structure, HTTP concerns, business rules, and database
+queries end up tangled together in the same functions. That makes code
+hard to test (you can't test a business rule without also faking an
+entire HTTP request), hard to change (a database swap touches every
+route), and hard for a new developer to navigate (there's no
+predictable place to look for a given kind of logic).
+    `.trim(),
+    whenToUse: `
+Reach for a layered structure as soon as a project has more than a
+handful of endpoints, or as soon as the same logic (like "is this email
+already taken") needs to be reused from more than one place.
+    `.trim(),
+    whenNotToUse: `
+For a tiny prototype, a quick script, or a project with two or three
+endpoints total, splitting into four folders is often pure overhead —
+one well-organized file is easier to follow than jumping between five
+nearly-empty ones. Add structure when the pain of not having it shows up,
+not before.
+    `.trim(),
+    commonMistakes: [
+      "Putting raw database queries directly inside route handlers or controllers, defeating the point of having a separate data-access layer.",
+      "Letting controllers grow their own business logic instead of delegating to a service, so the same rule gets duplicated across multiple controllers.",
+      "Introducing the full layered structure for a two-endpoint prototype, adding indirection before there's any real complexity to manage.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "For a function that checks whether a discount code has expired, name which layer (route, controller, service, or model) it belongs in and why." },
+      { difficulty: "Medium", prompt: "Take a route handler that both queries a database and formats a JSON response, and split it into a controller and a model function." },
+      { difficulty: "Hard", prompt: "Explain the trade-off between using a full layered structure for a 3-endpoint prototype versus keeping it in one file, and describe the signal that would tell you it's time to split it up." },
+    ],
+    interviewQuestions: [
+      { question: "Why split a backend project into routes, controllers, services, and models instead of one file?", answer: "To separate concerns so each layer has one job and a predictable location — making the code easier to test, change, and navigate as it grows." },
+      { question: "What's the difference between a controller and a service?", answer: "A controller translates an HTTP request into a plain function call and shapes the response; a service holds the actual business logic, independent of HTTP." },
+      { question: "What's the risk of always following a strict layered structure, even for tiny projects?", answer: "It adds indirection and files for logic simple enough to live in one place, making a small project harder to follow rather than easier." },
+    ],
+    prerequisites: ["routing", "middleware"],
+    relatedTopics: ["routing", "middleware", "dependency-injection"],
+    keywords: ["project structure", "MVC", "layered architecture", "separation of concerns", "controllers", "services", "models"],
+  },
+  {
+    id: "npm-and-packages",
+    title: "npm & Package Management",
+    level: "beginner",
+    description: "How Node.js projects declare, install, and lock their external dependencies using npm and package.json.",
+    explanation: `
+Almost no backend is written entirely from scratch — a project reaches
+for a web framework, a database driver, a validation library, and
+dozens of things those libraries themselves depend on. **npm** (Node
+Package Manager) is the tool that installs and manages all of that.
+
+Every Node project has a \`package.json\` file describing it: its name,
+its **dependencies** (code needed to run in production, like a web
+framework) and **devDependencies** (tools only needed while developing,
+like a test runner), and a \`scripts\` section defining shortcuts like
+\`npm run dev\`. Running \`npm install\` reads that file, downloads
+everything listed (plus whatever *those* packages depend on), and puts
+it all in a \`node_modules\` folder.
+    `.trim(),
+    analogy:
+      "package.json is like a shopping list for your project — 'we need this framework, this validator, and only this test tool while we're building.' node_modules is the fully-stocked pantry that results from shopping off that list. The lock file is the receipt, recording the exact brand and size of everything bought, so a second shopping trip buys precisely the same items again.",
+    examples: [
+      {
+        title: "A minimal package.json",
+        code: `{
+  "name": "my-api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "node server.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}`,
+        explanation: "express and pg are needed for the app to actually run in production; jest is only used while developing and testing, so it's kept separate.",
+        walkthrough: [
+          { code: '"scripts": { "dev": "node server.js" }', explanation: "Defines a shortcut — running npm run dev is equivalent to typing node server.js." },
+          { code: '"dependencies": { "express": "^4.19.0" }', explanation: "The ^ allows npm to install newer compatible versions (any 4.x.x) but never a breaking major version change." },
+          { code: '"devDependencies": { "jest": "^29.7.0" }', explanation: "Installed locally for development, but excluded when installing only production dependencies for deployment." },
+        ],
+      },
+      {
+        title: "Common npm commands",
+        code: `npm install              # install everything listed in package.json
+npm install express      # add express as a dependency
+npm install -D jest      # add jest as a devDependency
+npm run dev              # run the "dev" script
+npx some-cli-tool        # run a package's command without installing it globally`,
+        explanation: "npm install without arguments sets up a project you just cloned; with a package name, it adds something new and updates package.json for you.",
+      },
+    ],
+    howItWorks: `
+When you run \`npm install <package>\`, npm looks up that package (and
+every package *it* depends on) in the public npm registry, downloads
+them all into \`node_modules\`, and adds an entry to \`package.json\`. It
+also writes the exact resolved version of every package — direct and
+transitive — into \`package-lock.json\`. That lock file is what makes
+installs reproducible: without it, two developers running
+\`npm install\` weeks apart could get different versions of the same
+"^4.19.0" dependency as new compatible releases come out.
+    `.trim(),
+    whyItExists: `
+Before package managers, reusing someone else's code meant manually
+downloading and copying files, with no easy way to track versions or
+pull in updates. npm exists to standardize declaring what a project
+needs, discovering existing packages instead of writing everything from
+scratch, and installing all of it (transitive dependencies included) in
+a reproducible way.
+    `.trim(),
+    whenToUse: `
+Any real Node.js project uses npm — even a project with just one
+dependency benefits from package.json documenting what it needs and
+scripts standardizing how to run it.
+    `.trim(),
+    whenNotToUse: `
+The question is less "when to skip npm" and more "when to skip adding a
+dependency": pulling in a package for something trivial you could write
+in a few lines yourself (like checking if a number is even) adds an
+extra thing to keep updated and trust, for very little benefit.
+    `.trim(),
+    commonMistakes: [
+      "Committing the node_modules folder to git instead of .gitignore-ing it and letting npm install regenerate it from package.json.",
+      "Hand-editing package-lock.json, which npm manages automatically and expects to stay in sync with actual installs.",
+      "Installing something needed only for testing or building as a regular dependency instead of a devDependency, bloating what ships to production.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Explain the difference between dependencies and devDependencies in package.json." },
+      { difficulty: "Medium", prompt: "Given a package.json with express under dependencies and jest under devDependencies, name the command that installs only what's needed to run the app in production." },
+      { difficulty: "Hard", prompt: "Explain how two developers without a package-lock.json file could end up with different versions of the same dependency, and how committing that file prevents it." },
+    ],
+    interviewQuestions: [
+      { question: "What is package.json?", answer: "A file describing a Node.js project — its name, its dependencies and devDependencies, and shortcut commands defined under scripts." },
+      { question: "What's the difference between dependencies and devDependencies?", answer: "dependencies are needed for the app to run in production; devDependencies are only needed while developing, like test runners or build tools." },
+      { question: "What is package-lock.json for?", answer: "It records the exact resolved version of every installed package, direct and transitive, so future installs are reproducible instead of drifting as new compatible versions are published." },
+    ],
+    prerequisites: ["servers-and-web-frameworks"],
+    relatedTopics: ["servers-and-web-frameworks", "project-structure", "deployment-and-cicd"],
+    keywords: ["npm", "package.json", "package-lock.json", "node_modules", "dependencies", "devDependencies", "semver"],
+  },
 ];

@@ -635,4 +635,225 @@ the request, not deferred to a background job.
     relatedTopics: ["logging", "deployment-and-cicd"],
     keywords: ["background jobs", "queue", "worker", "cron", "async processing"],
   },
+  {
+    id: "connecting-to-a-database",
+    title: "Connecting to a Database",
+    level: "intermediate",
+    description: "The different ways backend code can talk to a database — raw drivers, query builders, and ORMs — and how a connection is actually established.",
+    explanation: `
+Your application code and your database are two separate programs, so
+they need a way to actually talk to each other. That happens over a
+network connection (even if the database is on the same machine), using
+a **connection string** that packs together everything needed to reach
+it: the host, port, username, password, and database name — something
+like \`postgres://user:pass@localhost:5432/mydb\`.
+
+On top of that raw connection, you have a choice of how directly you
+want to write SQL: a **driver** (like \`pg\` in Node or \`psycopg2\` in
+Python) sends SQL strings and hands back rows, giving you full control.
+A **query builder** (like Knex, or SQLAlchemy Core) lets you construct
+queries with function calls that still map closely to SQL. An **ORM**
+(like Prisma, Sequelize, or SQLAlchemy's ORM layer) goes further,
+letting you work with rows as objects and generating the SQL for you.
+    `.trim(),
+    analogy:
+      "A raw driver is like speaking directly to a bank teller in exact banking terminology. A query builder is like filling out a structured form that still asks for the same specific details. An ORM is like using the bank's app, where you tap 'send money' and it handles the paperwork underneath without you thinking about it — convenient, but you have less control over exactly what happens.",
+    examples: [
+      {
+        title: "A connection string and a raw query",
+        code: `const { Pool } = require("pg");
+
+// postgres://user:password@localhost:5432/mydb
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+const result = await pool.query(
+  "SELECT * FROM users WHERE id = $1",
+  [userId]
+);
+console.log(result.rows);`,
+        explanation: "The connection string tells the driver exactly where and how to connect; the query itself is plain SQL, with $1 as a safe placeholder for the actual value.",
+        walkthrough: [
+          { code: "new Pool({ connectionString: ... })", explanation: "Opens (and manages, over time) the actual network connection(s) to the database, using credentials read from an environment variable rather than hardcoded." },
+          { code: 'pool.query("SELECT * FROM users WHERE id = $1", [userId])', explanation: "Sends the SQL text and the value separately — the driver safely substitutes $1, avoiding the risk of building SQL by string concatenation." },
+          { code: "result.rows", explanation: "The driver parses the database's raw response into plain JavaScript objects you can use directly." },
+        ],
+      },
+      {
+        title: "The same query at three levels of abstraction",
+        code: `// Raw driver
+await pool.query("SELECT * FROM users WHERE active = $1", [true]);
+
+// Query builder (Knex)
+await knex("users").where({ active: true });
+
+// ORM (Prisma)
+await prisma.user.findMany({ where: { active: true } });`,
+        explanation: "All three end up running equivalent SQL — they differ only in how much of the SQL you write by hand versus how much the library generates for you.",
+      },
+    ],
+    howItWorks: `
+The app reads connection details (usually from an environment variable,
+never hardcoded) and hands them to a driver, which opens a TCP
+connection to the database and authenticates. Rather than opening a new
+connection per query, real applications keep a small pool of open
+connections ready to reuse (see connection pooling). A query builder or
+ORM sits on top of that same driver — at some point, everything still
+becomes SQL text sent over that same connection; the abstraction just
+decides how much of that SQL you write versus generate.
+    `.trim(),
+    whyItExists: `
+A database speaks its own wire protocol, not JavaScript or Python
+directly — without a driver translating between your language's data
+types and that protocol, your application code couldn't talk to it at
+all. Query builders and ORMs exist on top of that for productivity:
+generating repetitive SQL, mapping rows to familiar objects, and
+providing tools like migrations that a raw driver doesn't include.
+    `.trim(),
+    whenToUse: `
+Reach for a raw driver when you need full control or you're running a
+handful of simple, performance-sensitive queries. Reach for a query
+builder when you want dynamic, composable queries with more safety than
+hand-built SQL strings. Reach for an ORM for typical CRUD-heavy apps,
+where the productivity of models, relations, and built-in migrations
+outweighs giving up some fine-grained SQL control.
+    `.trim(),
+    whenNotToUse: `
+Avoid forcing complex analytical or reporting queries through an ORM's
+query API — it often produces slower, harder-to-read SQL than writing
+it directly; most ORMs let you drop down to raw SQL for exactly this
+case. For a tiny script that runs one or two queries, pulling in a full
+ORM is usually more setup than the task needs.
+    `.trim(),
+    commonMistakes: [
+      "Hardcoding database credentials directly in source code instead of reading them from environment variables.",
+      "Building SQL by concatenating strings with user input, opening the door to SQL injection, instead of using parameterized placeholders.",
+      "Opening a brand-new database connection for every incoming request instead of reusing a connection pool, which is slow and can exhaust the database's connection limit under load.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Break down the pieces of the connection string postgres://app:secret@db.internal:5432/orders — host, port, user, password, and database name." },
+      { difficulty: "Medium", prompt: "Rewrite this unsafe query to use a parameterized placeholder instead of string concatenation: db.query(\"SELECT * FROM users WHERE email = '\" + email + \"'\")." },
+      { difficulty: "Hard", prompt: "Explain what would go wrong, and why, if every incoming HTTP request opened and closed its own new database connection instead of borrowing one from a pool." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between a database driver, a query builder, and an ORM?", answer: "A driver sends raw SQL and returns rows with no abstraction; a query builder lets you construct SQL through function calls that still map closely to it; an ORM maps rows to objects and generates the SQL for you, trading some control for productivity." },
+      { question: "What does a database connection string typically contain?", answer: "The protocol, host, port, username, password, and the specific database name needed to establish a connection." },
+      { question: "Why should database queries use parameterized placeholders instead of string concatenation?", answer: "To prevent SQL injection — the driver safely substitutes values instead of treating attacker-controlled input as part of the SQL itself." },
+    ],
+    prerequisites: ["env-vars-and-config"],
+    relatedTopics: ["env-vars-and-config", "error-handling-apis"],
+    keywords: ["database driver", "connection string", "query builder", "ORM", "pg", "psycopg2", "SQL injection", "parameterized queries"],
+  },
+  {
+    id: "python-web-frameworks",
+    title: "FastAPI & Python Web Frameworks",
+    level: "intermediate",
+    description: "How backend concepts like routing and middleware look in Python, using FastAPI as an example of a modern, async, type-driven framework.",
+    explanation: `
+Everything covered so far — routing, middleware, the request/response
+lifecycle — isn't specific to Node.js or Express; it's how backend
+frameworks work in general. Python has its own web frameworks: Flask
+and Django are the older, synchronous-first options, while **FastAPI**
+is a newer framework built around Python's type hints and \`async\`/\`await\`.
+
+FastAPI's defining feature is that it uses ordinary Python type hints
+to do double duty: a **Pydantic** model describing a request body
+automatically validates incoming data (rejecting anything that doesn't
+match, with a clear error) *and* generates interactive API documentation
+for free, without writing either by hand.
+    `.trim(),
+    analogy:
+      "It's the same directory board from routing, just installed in a different building — the underlying idea (map a method and path to a function) is identical, only the syntax and a few extra conveniences differ.",
+    examples: [
+      {
+        title: "A route with a path parameter and a request body",
+        code: `from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    name: str
+    price: float
+
+@app.get("/items/{item_id}")
+async def get_item(item_id: int):
+    return {"item_id": item_id}
+
+@app.post("/items")
+async def create_item(item: Item):
+    return {"created": item.name, "price": item.price}`,
+        explanation: "Declaring item_id: int makes FastAPI convert and validate it automatically; declaring the Item Pydantic model does the same for the whole request body, rejecting requests missing name or price with a 422 error before your function even runs.",
+        walkthrough: [
+          { code: '@app.get("/items/{item_id}")', explanation: "A decorator-based route, equivalent to app.get(\"/items/:id\", ...) in Express — {item_id} is a path parameter." },
+          { code: "async def get_item(item_id: int):", explanation: "The int type hint isn't just documentation — FastAPI actively validates and converts the incoming path segment, returning an error automatically if it isn't a valid integer." },
+          { code: "class Item(BaseModel): ...", explanation: "A Pydantic model describing the expected shape of a request body — the same declaration also powers the automatically generated /docs page." },
+        ],
+      },
+      {
+        title: "Dependencies — FastAPI's take on shared, cross-cutting logic",
+        code: `from fastapi import Depends, FastAPI, HTTPException
+
+app = FastAPI()
+
+def get_current_user(token: str):
+    if token != "valid-token":
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return {"user": "alice"}
+
+@app.get("/profile")
+async def profile(user: dict = Depends(get_current_user)):
+    return user`,
+        explanation: "Depends() is FastAPI's equivalent of Express middleware for things like auth checks — instead of running before the handler in a chain, it's declared as a parameter the handler needs, and FastAPI resolves it before calling the route.",
+      },
+    ],
+    howItWorks: `
+FastAPI is built on **Starlette** for the actual async web layer (an
+ASGI application, run by a server like Uvicorn) and **Pydantic** for
+data validation. When a request arrives, FastAPI matches the path to a
+decorated function, uses the function's type hints and any Pydantic
+models to validate and parse path parameters, query strings, and the
+body before ever calling your function, then serializes whatever you
+return back to JSON automatically. Those same type hints are used to
+generate an OpenAPI schema, which powers the interactive docs served at
+\`/docs\`.
+    `.trim(),
+    whyItExists: `
+Flask and Django predate widespread async support in Python and require
+validation to be written by hand. FastAPI exists to bring Node-style
+non-blocking I/O performance to Python, while using type hints — which
+Python developers were already writing for other reasons — to eliminate
+most of the boilerplate around validating requests and documenting an
+API.
+    `.trim(),
+    whenToUse: `
+FastAPI is a strong choice when a team is already in the Python
+ecosystem (common alongside data or ML work) and wants async
+performance, strict request validation, and free interactive API docs
+without extra tooling.
+    `.trim(),
+    whenNotToUse: `
+If a team and its libraries are already committed to Node, or the app
+is a simple, mostly synchronous CRUD site where Flask or Django's
+simpler, more batteries-included conventions are enough, introducing
+FastAPI's async model and Pydantic layer is unnecessary complexity.
+    `.trim(),
+    commonMistakes: [
+      "Calling a blocking, non-async library (like an old synchronous database driver) inside an async def route without awaiting an async-compatible alternative, which stalls the entire event loop for every other concurrent request.",
+      "Skipping Pydantic models and accepting a raw, untyped request body, losing both automatic validation and the automatically generated documentation.",
+      "Treating Depends() as identical to Express-style middleware — it's closer to an injectable parameter the handler declares it needs, rather than a step that always runs before the handler in a fixed chain.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write the FastAPI equivalent of an Express route: GET /ping returning {\"status\": \"ok\"}." },
+      { difficulty: "Medium", prompt: "Define a Pydantic model CreateUser with a name (str) and age (int), and a POST /users route that accepts it and returns the values back." },
+      { difficulty: "Hard", prompt: "Explain why calling a blocking, synchronous database call inside an async def route handler can slow down every other concurrent request in FastAPI, not just the one making that call." },
+    ],
+    interviewQuestions: [
+      { question: "What is FastAPI built on?", answer: "Starlette (an ASGI framework) for the async web layer, and Pydantic for data validation and serialization." },
+      { question: "How does FastAPI generate interactive API documentation automatically?", answer: "It builds an OpenAPI schema from the same type hints and Pydantic models used to validate requests, and serves an interactive UI from that schema at /docs." },
+      { question: "What's the risk of a blocking call inside an async route handler?", answer: "It occupies the single event loop thread, delaying every other concurrent request, the same way a CPU-heavy synchronous operation would block Node.js." },
+    ],
+    prerequisites: ["servers-and-web-frameworks", "routing"],
+    relatedTopics: ["servers-and-web-frameworks", "routing", "middleware", "validation-and-sanitization"],
+    keywords: ["FastAPI", "Python", "Pydantic", "ASGI", "Starlette", "async", "Flask", "Django", "Uvicorn"],
+  },
 ];

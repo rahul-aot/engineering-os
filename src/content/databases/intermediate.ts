@@ -594,4 +594,189 @@ most ORMs still allow as an escape hatch) is often clearer and faster.
     relatedTopics: ["basic-sql-queries", "database-migrations", "connection-pooling"],
     keywords: ["ORM", "object-relational mapper", "Prisma", "abstraction"],
   },
+  {
+    id: "postgresql-deep-dive",
+    title: "PostgreSQL in Depth",
+    level: "intermediate",
+    description: "The PostgreSQL-specific features beyond standard SQL — richer data types, auto-incrementing ids, and the psql command-line client.",
+    explanation: `
+Everything covered so far — SELECT, JOIN, WHERE — is standard SQL that
+works, with minor syntax differences, across most relational databases.
+**PostgreSQL** (often just "Postgres") is one of the most widely used
+databases, and it adds its own extensions on top of that standard
+worth knowing specifically: richer column types like **JSONB**
+(structured, queryable JSON stored in an efficient binary form) and
+arrays, auto-incrementing id columns, and \`psql\`, its interactive
+command-line client for talking to a database directly.
+    `.trim(),
+    analogy:
+      "Standard SQL is like standard English, understood everywhere. Postgres-specific features are a rich regional vocabulary — genuinely more expressive if you're speaking with someone who knows it, but meaningless if you switch to a database that only speaks the standard dialect.",
+    examples: [
+      {
+        title: "Postgres-specific column types",
+        code: `CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  tags TEXT[],
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);`,
+        explanation: "SERIAL sets up an auto-incrementing integer id, TEXT[] stores a list of strings directly in one column, JSONB holds a flexible structured document, and TIMESTAMPTZ is a timezone-aware timestamp that defaults to the current time.",
+        walkthrough: [
+          { code: "id SERIAL PRIMARY KEY", explanation: "Postgres creates a hidden sequence behind the scenes and uses it to auto-generate the next integer id for every new row." },
+          { code: "tags TEXT[]", explanation: "An array column — no separate 'tags' table needed for a simple list of strings attached to each row." },
+          { code: "metadata JSONB", explanation: "Stores arbitrary structured data (not a fixed set of columns), parsed into an efficient binary form that can still be indexed and queried." },
+        ],
+      },
+      {
+        title: "Querying inside a JSONB column",
+        code: `SELECT name, metadata->>'color' AS color
+FROM products
+WHERE metadata->>'in_stock' = 'true';`,
+        explanation: "-> extracts a nested value as JSON, while ->> extracts it as plain text — here ->> is used because the color is being compared and displayed as ordinary text, not nested JSON.",
+      },
+    ],
+    howItWorks: `
+\`JSONB\` isn't stored as the raw text you typed — Postgres parses it
+into a decomposed binary format up front, which is what lets it support
+indexing (a GIN index can index the keys/values inside a JSONB column)
+and fast operators like \`->\` and \`->>\`, at the cost of a small
+overhead when the value is first written. The \`psql\` client connects
+directly to a database (\`psql -h host -U user -d dbname\`) and gives you
+commands like \`\\dt\` to list tables or \`\\d products\` to inspect a
+table's columns — useful for quickly inspecting data or debugging
+without writing a script.
+    `.trim(),
+    whyItExists: `
+Real projects often need a mix of strict, well-known relational data
+(like a user's id and email) alongside genuinely flexible or
+per-row-variable data (like a product's optional custom attributes).
+JSONB lets Postgres handle both in one database, instead of needing a
+separate document database purely for the flexible parts.
+    `.trim(),
+    whenToUse: `
+Use JSONB for a handful of genuinely flexible or sparse fields — custom
+attributes, a webhook payload, per-user settings. Use psql for quickly
+inspecting data, running ad-hoc queries, or debugging directly against
+a database during development.
+    `.trim(),
+    whenNotToUse: `
+Don't store your whole schema as JSONB just because it's flexible — you
+give up the enforcement, clarity, and full indexing support of proper
+columns and foreign keys. If a field has a known, stable shape and you
+regularly query or join on it, model it as a real column instead.
+    `.trim(),
+    commonMistakes: [
+      "Using -> (which returns JSON) when a plain text value was expected from ->> , leading to confusing type-mismatch errors in comparisons.",
+      "Reaching for a JSONB column to avoid designing a proper related table, out of laziness rather than genuine flexibility needs.",
+      "Assuming SERIAL ids are gapless — deleted rows leave permanent gaps, since the underlying sequence never goes backward.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write a CREATE TABLE statement for an 'events' table with a SERIAL id and a JSONB 'payload' column." },
+      { difficulty: "Medium", prompt: "Write a query that selects rows from a JSONB 'settings' column where a nested key 'theme' equals 'dark'." },
+      { difficulty: "Hard", prompt: "Describe a scenario where you'd choose a JSONB column over creating a proper related table, and one where you'd choose the related table instead." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between JSON and JSONB in PostgreSQL?", answer: "JSON is stored as the exact text you inserted; JSONB is parsed into a decomposed binary form, which is slightly slower to write but supports indexing and faster queries." },
+      { question: "What does a SERIAL column do?", answer: "It creates an auto-incrementing integer column backed by a hidden sequence that generates each new row's id." },
+      { question: "When would you reach for a JSONB column instead of normalizing into another table?", answer: "When the data's shape is genuinely variable or sparse per row and isn't something you heavily query or join on — otherwise a proper related table is usually the better fit." },
+    ],
+    prerequisites: ["basic-sql-queries", "tables-rows-columns"],
+    relatedTopics: ["basic-sql-queries", "indexes", "normalization"],
+    keywords: ["PostgreSQL", "Postgres", "JSONB", "psql", "SERIAL", "arrays", "TIMESTAMPTZ"],
+  },
+  {
+    id: "subqueries-and-ctes",
+    title: "Subqueries & CTEs",
+    level: "intermediate",
+    description: "Nesting one query inside another, or naming a step with WITH, to break a complex question into smaller, readable pieces.",
+    explanation: `
+Some questions can't be answered with one flat query. "Find users who
+have placed more than 3 orders" needs an intermediate step: first figure
+out which user ids have more than 3 orders, then look up those users.
+
+A **subquery** is a query nested inside another one, usable in a
+\`WHERE\`, \`FROM\`, or \`SELECT\` clause. A **CTE** (Common Table
+Expression), written with \`WITH\`, does something similar but gives that
+intermediate step a name you can reference afterward like a temporary
+table — often making a multi-step query much easier to read.
+    `.trim(),
+    analogy:
+      "Writing a subquery is like doing scratch work on the side of the page before answering the real question. A CTE is doing that same scratch work but labeling it clearly — 'Step 1: frequent buyers' — so anyone reading it later (including future you) doesn't have to mentally unpack a nested block to see what it's for.",
+    examples: [
+      {
+        title: "A subquery in WHERE",
+        code: `SELECT name FROM users
+WHERE id IN (
+  SELECT user_id FROM orders
+  GROUP BY user_id
+  HAVING COUNT(*) > 3
+);`,
+        explanation: "The inner query first finds every user_id with more than 3 orders; the outer query then finds the actual users matching those ids.",
+        walkthrough: [
+          { code: "SELECT user_id FROM orders GROUP BY user_id HAVING COUNT(*) > 3", explanation: "Runs first (conceptually) and produces a list of user ids meeting the condition." },
+          { code: "WHERE id IN (...)", explanation: "The outer query filters users down to only those whose id appears in that inner list." },
+        ],
+      },
+      {
+        title: "The same query, using a CTE",
+        code: `WITH frequent_buyers AS (
+  SELECT user_id FROM orders
+  GROUP BY user_id
+  HAVING COUNT(*) > 3
+)
+SELECT users.name
+FROM users
+JOIN frequent_buyers ON frequent_buyers.user_id = users.id;`,
+        explanation: "The WITH clause names the intermediate result frequent_buyers, and the rest of the query can join against it just like a real table — arguably easier to follow than a nested subquery once there's more than one step.",
+      },
+    ],
+    howItWorks: `
+Conceptually, the database evaluates the inner subquery (or each CTE)
+first, producing an intermediate result set, and then runs the outer
+query against that result. Postgres treats a CTE largely as a named,
+temporary result you can select from or join against; for genuinely
+hierarchical data (like a tree of comment replies), it also supports
+\`WITH RECURSIVE\`, which repeats a query against its own previous
+results until nothing new is found.
+    `.trim(),
+    whyItExists: `
+Real questions — "customers who bought X but never Y," "the best-selling
+product in each category" — often can't be expressed as a single flat
+SELECT. Subqueries and CTEs exist to let you build up an answer in
+stages within one query, without needing separate round trips to the
+database or manually managed temporary tables.
+    `.trim(),
+    whenToUse: `
+Reach for a CTE when a query has multiple logical steps and naming each
+one makes the whole thing easier to read. Reach for an inline subquery
+for a small, self-contained filtering condition that doesn't need its
+own name.
+    `.trim(),
+    whenNotToUse: `
+If a plain JOIN or a simple aggregation already answers the question
+directly, wrapping it in a subquery or CTE just adds indirection.
+Deeply nested subqueries, several levels deep, also tend to become hard
+to read and to optimize — that's usually a sign to pull one level out
+into a named CTE, or reconsider the query's shape entirely.
+    `.trim(),
+    commonMistakes: [
+      "Writing a correlated subquery (one that references a column from the outer query) that effectively reruns once per outer row, becoming very slow on large tables.",
+      "Assuming a CTE is always computed once and cached — that behavior can differ across databases and versions, so it isn't guaranteed to be a free optimization.",
+      "Nesting several layers of subqueries instead of naming intermediate steps with CTEs, making the query difficult for anyone else (or future you) to follow.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Rewrite a subquery used with = into an equivalent using IN, for finding orders placed by a specific customer looked up by email." },
+      { difficulty: "Medium", prompt: "Write a CTE that computes the average order total, then a query that selects all orders above that average." },
+      { difficulty: "Hard", prompt: "Explain the difference between a correlated and a non-correlated subquery, with a concrete example of each and why the correlated one is typically slower." },
+    ],
+    interviewQuestions: [
+      { question: "What is a CTE and why use one instead of a plain subquery?", answer: "A WITH clause that names an intermediate query result — mainly used to make a multi-step query more readable by labeling each stage instead of nesting subqueries." },
+      { question: "What is a correlated subquery?", answer: "A subquery that references a column from its outer query, meaning it conceptually needs to be re-evaluated once per row of the outer query." },
+      { question: "Can a single query define more than one CTE?", answer: "Yes — multiple CTEs can be chained in one WITH clause, comma-separated, and later ones can reference earlier ones." },
+    ],
+    prerequisites: ["joins", "aggregation"],
+    relatedTopics: ["joins", "aggregation", "basic-sql-queries"],
+    keywords: ["subquery", "CTE", "WITH clause", "correlated subquery", "nested query"],
+  },
 ];
