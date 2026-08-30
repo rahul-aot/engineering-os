@@ -56,4 +56,9 @@ the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — covers this project's own code and content. Contributions
+are expected to be original (see
+[Content licensing](CONTRIBUTING.md#content-licensing)); anything adapted
+from a third-party source (docs, books, courses, etc.) keeps that source's
+own license/attribution rather than being folded into this project's MIT
+grant.
