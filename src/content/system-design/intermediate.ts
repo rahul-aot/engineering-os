@@ -77,7 +77,7 @@ is unnecessary overhead. Keep that in memory instead.
       { question: "What is data persistence?", answer: "The property of data surviving beyond the lifetime of the process that created it — e.g. still being there after a server restarts." },
     ],
     prerequisites: ["rest-apis"],
-    relatedTopics: ["sql-vs-nosql", "caching", "rest-apis"],
+    relatedTopics: ["sql-vs-nosql", "caching", "rest-apis", "database-replication"],
     keywords: ["database", "persistence", "query", "storage"],
   },
   {

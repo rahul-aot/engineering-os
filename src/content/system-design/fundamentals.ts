@@ -235,7 +235,7 @@ protocols like WebSockets or dedicated binary protocols fit better there.
       { question: "What's the difference between GET and POST?", answer: "GET requests data without changing anything on the server (and can be cached); POST typically sends data to create or change something on the server." },
     ],
     prerequisites: ["client-and-server"],
-    relatedTopics: ["client-and-server", "rest-apis"],
+    relatedTopics: ["client-and-server", "rest-apis", "authentication-and-sessions", "websockets"],
     keywords: ["http", "protocol", "status code", "method", "stateless"],
   },
   {
