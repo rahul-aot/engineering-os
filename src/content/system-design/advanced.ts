@@ -40,10 +40,13 @@ function pickServer() {
     ],
     howItWorks: `
 Every incoming request first reaches the load balancer instead of a
-specific server directly. The load balancer picks a healthy server —
-using a strategy like round robin, least-connections, or based on server
-load — and forwards the request there. It also continuously checks server
-health, and stops sending traffic to any server that's down.
+specific server directly. The load balancer picks a healthy server — using
+a strategy like round robin (cycling through servers in a fixed order,
+regardless of how busy each one currently is), **least-connections**
+(send each new request to whichever server currently has the fewest
+active requests still in progress), or based on server load — and
+forwards the request there. It also continuously checks server health, and
+stops sending traffic to any server that's down.
     `.trim(),
     diagram: `
           ┌─────────────┐
@@ -72,7 +75,7 @@ not preemptively for hypothetical scale.
     `.trim(),
     commonMistakes: [
       "Treating the load balancer itself as unbreakable — it also needs redundancy, or it becomes a single point of failure.",
-      "Ignoring 'sticky sessions' concerns when a user's data is only stored on the specific server that first handled them.",
+      "Ignoring 'sticky sessions' — where the load balancer deliberately keeps routing a given user's later requests back to the same server it used before — when that user's data is only stored on that specific server.",
       "Assuming load balancing alone solves scaling — the database or other shared resources behind it can still be the real bottleneck.",
     ],
     exercises: [

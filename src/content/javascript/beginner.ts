@@ -298,8 +298,10 @@ and function arguments coming from code you don't control.
     level: "beginner",
     description: "Symbols that perform actions on values, like math or comparisons.",
     explanation: `
-An operator is a symbol that tells JavaScript to do something with one or
-more values — add them, compare them, combine them.
+You constantly need to do things with values — add two numbers together,
+check which of two is bigger, or combine two conditions into one decision.
+JavaScript gives you a set of symbols, called **operators**, that do exactly
+that: each one takes one or more values and produces a result.
 
 A few groups you'll use daily:
 
@@ -423,9 +425,10 @@ console.log(message); // "You can vote"`,
     ],
     howItWorks: `
 JavaScript checks the condition inside the parentheses. If it evaluates to
-a truthy value, it runs that block and skips the rest. Otherwise, it moves
-to the next \`else if\` and repeats the check, finally falling into \`else\` if
-nothing else matched.
+a **truthy** value — basically, anything except \`false\`, \`0\`, \`""\`, \`null\`,
+\`undefined\`, or \`NaN\` (those are the "falsy" values) — it runs that block and
+skips the rest. Otherwise, it moves to the next \`else if\` and repeats the
+check, finally falling into \`else\` if nothing else matched.
     `.trim(),
     diagram: `
 Check condition

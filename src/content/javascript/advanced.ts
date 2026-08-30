@@ -265,9 +265,13 @@ JavaScript runs your main code on something called the **call stack**. When
 it encounters something asynchronous (like \`setTimeout\` or a network
 request), that task is handed off to the browser, and JavaScript keeps
 running the rest of the main code. Once the async task finishes, its
-callback is placed in a **queue**. The event loop's job is simple: constantly
-check "is the call stack empty?" — and if so, take the next item from the
-queue and run it.
+callback is placed in a queue — but there are actually two of them, checked
+in a strict order. Promise callbacks go into the **microtask queue**;
+timers, network events, and clicks go into the **macrotask queue**. The
+event loop's job is: once the call stack is empty, drain the *entire*
+microtask queue first — running every waiting promise callback, even ones
+added while draining — and only once it's completely empty does it run a
+single macrotask, before checking the microtask queue again.
     `.trim(),
     diagram: `
 Call stack (running now)
@@ -299,7 +303,7 @@ feeling random.
     commonMistakes: [
       "Assuming `setTimeout(fn, 0)` runs immediately — it still waits for the current code to finish first.",
       "Not realizing that a long-running synchronous loop can freeze the page, since nothing else can run until the call stack is clear.",
-      "Confusing the order of promise callbacks (microtasks) and timer callbacks (macrotasks) — promises generally run first.",
+      "Confusing the order of promise callbacks (microtasks) and timer callbacks (macrotasks) — microtasks always finish draining before the next macrotask runs, it's not just a usual tendency.",
     ],
     exercises: [
       { difficulty: "Easy", prompt: "Predict, then verify, the console output order of a mix of `console.log` and `setTimeout` calls." },
@@ -370,7 +374,7 @@ cat.speak(); // "Whiskers makes a sound."
 
 console.log(Object.getPrototypeOf(cat) === Animal.prototype); // true`,
         explanation:
-          "`speak` is defined once, on `Animal.prototype`, and every instance created with `new Animal(...)` shares that same method through the prototype chain — it isn't copied per instance.",
+          "`speak` is defined once, on `Animal.prototype`, and every instance created with `new Animal(...)` shares that same method through the prototype chain — it isn't copied per instance. Note: `Animal.prototype` is a special property that only functions and classes have — it's the template object that becomes the internal fallback link (what `Object.getPrototypeOf` reads back) for every instance created with `new Animal(...)`. They're two names for closely related things, not the same thing.",
       },
     ],
     howItWorks: `
@@ -379,6 +383,12 @@ pointing to another object. Property lookup checks the object itself first;
 if not found, it walks up this chain of prototypes. Arrays and functions
 are also objects, and they get useful built-in methods (like \`.map()\` or
 \`.call()\`) this exact same way — from their own prototypes.
+
+Don't confuse this internal link with the \`.prototype\` **property** you see
+on functions and classes (like \`Animal.prototype\`) — that property is only
+a template object, used to set up the internal link on every instance
+created with \`new\`. Plain objects (like \`{}\`) don't have a \`.prototype\`
+property at all, even though they still have an internal prototype link.
     `.trim(),
     whyItExists: `
 Prototypes let many objects share the same methods without each one storing

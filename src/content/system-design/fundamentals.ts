@@ -174,7 +174,7 @@ shared language: a set of rules for how a request should be structured,
 what kinds of requests exist, and how a server should respond.
     `.trim(),
     analogy:
-      "HTTP is like the standard format for a letter: a return address, a recipient address, a subject, and a body. Because everyone agrees on that format, any post office (server) can read and process any properly formatted letter (request).",
+      "HTTP is like the standard format for a letter: a return address, a recipient address, a subject, and a body. Because everyone agrees on that format, any recipient (server) can read a properly formatted letter (request) — and is expected to write back using that same standard format (a response), rather than replying however they feel like.",
     examples: [
       {
         title: "A basic HTTP request/response",
@@ -247,16 +247,16 @@ protocols like WebSockets or dedicated binary protocols fit better there.
 An API (Application Programming Interface) is simply a way one piece of
 software lets another piece of software ask it to do things. But an API
 could be organized in a thousand different, inconsistent ways — which
-makes it hard to learn and use. **REST** is a popular, widely-agreed-upon
-style for designing APIs so that they're consistent and predictable across
-countless different services.
+makes it hard to learn and use. **REST** (Representational State Transfer)
+is a popular, widely-agreed-upon style for designing APIs so that they're
+consistent and predictable across countless different services.
 
 The core idea: everything is a "resource" (like a user, a post, a
 product), identified by a URL, and you use standard HTTP methods to act on
 it — GET to read, POST to create, PUT/PATCH to update, DELETE to remove.
     `.trim(),
     analogy:
-      "REST is like a well-labeled filing cabinet where every drawer follows the same layout convention. Once you understand one drawer, you instantly know how to work with any other drawer in any cabinet built the same way.",
+      "REST is like a well-labeled filing cabinet where every drawer follows the same layout convention, and every drawer lets you do the same standard set of things — look inside, add a paper, replace its contents, or remove it. Once you understand one drawer, you instantly know how to work with any other drawer in any cabinet built the same way.",
     examples: [
       {
         title: "REST-style endpoints for a 'posts' resource",

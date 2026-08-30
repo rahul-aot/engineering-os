@@ -141,6 +141,12 @@ An object stores each value under a key. When you write \`user.name\`,
 JavaScript looks up the key \`"name"\` inside the object and returns whatever
 value is stored there. Unlike arrays, there's no guaranteed numeric order —
 you access things by name, not position.
+
+One important detail: a variable holding an object doesn't hold the object
+itself, it holds a **reference** — directions to where the object actually
+lives. So copying that variable with \`=\` only copies the directions, not
+the object: both variables end up pointing at the exact same object, and
+changing one is visible through the other.
     `.trim(),
     whyItExists: `
 Real-world things usually have multiple attributes at once — a product has

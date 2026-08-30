@@ -86,13 +86,16 @@ is unnecessary overhead. Keep that in memory instead.
     level: "intermediate",
     description: "Two different philosophies for organizing and storing data, each suited to different problems.",
     explanation: `
-Not all databases organize data the same way. **SQL** (relational)
-databases store data in strict tables with predefined columns, and are
-very good at representing relationships between different kinds of data
-consistently. **NoSQL** databases take a more flexible approach — storing
-data as loose documents, key-value pairs, or other shapes — trading some
-structure and consistency guarantees for flexibility and easier scaling
-across many machines.
+Not all databases organize data the same way. **SQL** (Structured Query
+Language — the language used to ask these databases for data, and the name
+that stuck to the whole category) databases are **relational**: they store
+data in strict tables with predefined columns, and are very good at
+representing relationships between different kinds of data consistently.
+**NoSQL** ("not only SQL") databases take a more flexible approach —
+storing data as loose documents, key-value pairs, or other shapes — trading
+some structure and consistency guarantees for flexibility and easier
+scaling across many machines. Despite the name, most NoSQL databases still
+support some form of querying — they just don't use SQL to do it.
 
 Neither is universally "better" — the right choice depends on how
 structured your data is and how it needs to scale.

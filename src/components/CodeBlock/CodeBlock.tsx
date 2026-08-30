@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { CodeExample } from "../../types/content";
 import { InlineText } from "../TopicPage/RichText";
+import CodePlayground from "./CodePlayground";
 
 interface CodeBlockProps {
   example: CodeExample;
@@ -46,6 +47,9 @@ export default function CodeBlock({ example }: CodeBlockProps) {
       >
         <code>{example.code}</code>
       </Box>
+
+      <CodePlayground code={example.code} />
+
       {example.explanation && (
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
           <InlineText text={example.explanation} />
