@@ -357,6 +357,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://engineeringwiki.vercel.app/backend/authentication-and-passwords</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://engineeringwiki.vercel.app/backend/fastapi-database-and-crud</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://engineeringwiki.vercel.app/backend/api-versioning</loc>
     <priority>0.7</priority>
   </url>
@@ -426,6 +434,10 @@
   </url>
   <url>
     <loc>https://engineeringwiki.vercel.app/databases/subqueries-and-ctes</loc>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://engineeringwiki.vercel.app/databases/pagination</loc>
     <priority>0.7</priority>
   </url>
   <url>

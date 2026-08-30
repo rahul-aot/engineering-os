@@ -779,4 +779,96 @@ into a named CTE, or reconsider the query's shape entirely.
     relatedTopics: ["joins", "aggregation", "basic-sql-queries"],
     keywords: ["subquery", "CTE", "WITH clause", "correlated subquery", "nested query"],
   },
+  {
+    id: "pagination",
+    title: "Pagination",
+    level: "intermediate",
+    description: "Returning a large result set in smaller pages instead of all at once, using LIMIT/OFFSET or a keyset approach.",
+    explanation: `
+An endpoint like \`GET /products\` might match thousands of rows —
+sending every one of them back in a single response wastes bandwidth,
+memory, and rendering time on both ends, for data almost nobody actually
+scrolls down to see. **Pagination** splits a large result into smaller
+pages, returning one chunk at a time along with a way to fetch the next.
+
+The simplest approach is \`LIMIT\`/\`OFFSET\`: skip a number of rows, then
+take the next batch. It's easy to reason about ("give me page 3, 20 per
+page"), but gets slower the deeper you page, since the database still
+has to walk past every skipped row. **Keyset pagination** ("give me
+everything after id 340") avoids that by filtering directly on a
+column's value instead of counting through rows, so it stays fast no
+matter how far into the results you go.
+    `.trim(),
+    analogy:
+      "OFFSET/LIMIT pagination is like flipping through a phone book from page 1 every single time someone asks for page 50 — you still have to count past pages 1 through 49 first. Keyset pagination is like bookmarking exactly where you left off, so the next request opens straight to that spot.",
+    examples: [
+      {
+        title: "OFFSET/LIMIT pagination",
+        code: `-- Page 3, 20 rows per page
+SELECT * FROM products
+ORDER BY id
+LIMIT 20 OFFSET 40;`,
+        explanation: "Skips the first 40 rows (pages 1 and 2), then returns the next 20 — page 3.",
+        walkthrough: [
+          { code: "ORDER BY id", explanation: "Gives every page a stable, repeatable order — pagination without one can show duplicate or missing rows if the underlying order isn't guaranteed between requests." },
+          { code: "LIMIT 20", explanation: "Caps how many rows this particular page returns." },
+          { code: "OFFSET 40", explanation: "Skips the rows that belong to earlier pages before starting to collect this page's rows." },
+        ],
+      },
+      {
+        title: "Keyset pagination",
+        code: `SELECT * FROM products
+WHERE id > 340
+ORDER BY id
+LIMIT 20;`,
+        explanation: "Instead of counting past rows with OFFSET, this jumps directly to rows after the last id seen on the previous page (340) — with an index on id, the database can find that starting point instantly, regardless of how deep into the results you are.",
+      },
+    ],
+    howItWorks: `
+With \`OFFSET\`/\`LIMIT\`, the database still has to generate (or at least
+count through) every row up to the offset before it can return the
+requested slice, even though most of those rows are immediately
+discarded — the deeper the page, the more wasted work. Keyset
+pagination instead uses a \`WHERE\` condition on an indexed, ordered
+column (like \`id\` or \`created_at\`) to jump straight to the right
+starting point, so requesting "page 5,000" costs about the same as
+requesting page 1.
+    `.trim(),
+    whyItExists: `
+Pagination exists so that list endpoints and UIs don't have to load,
+transmit, and render every row that matches a query at once — most of a
+large result set is never actually looked at by the user, so returning
+all of it upfront wastes work at every layer, from the database to the
+network to the browser.
+    `.trim(),
+    whenToUse: `
+Use OFFSET/LIMIT for small-to-moderate result sets, or when users need
+to jump directly to an arbitrary page number. Use keyset pagination for
+large, fast-growing tables, infinite-scroll feeds, or any API where
+performance at deep pages actually matters.
+    `.trim(),
+    whenNotToUse: `
+For result sets small enough to return comfortably in one response (a
+settings list, a handful of categories), pagination adds complexity for
+no real benefit — just return everything.
+    `.trim(),
+    commonMistakes: [
+      "Paginating without an ORDER BY, letting rows shift between pages — a row appearing twice, or never at all — if the underlying data changes between requests.",
+      "Using large OFFSET values on a constantly growing table and expecting consistent performance, when OFFSET's cost grows with how deep the page is.",
+      "Building keyset pagination on a column that isn't unique or isn't indexed, which can be just as slow as OFFSET, or skip/duplicate rows when values tie.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Write an OFFSET/LIMIT query for page 2 of a products table, 10 rows per page." },
+      { difficulty: "Medium", prompt: "Convert that same query into keyset pagination, given the last product id seen on page 1." },
+      { difficulty: "Hard", prompt: "Explain why OFFSET 100000 LIMIT 20 is slow on a large table, and why an equivalent keyset query for that same depth isn't." },
+    ],
+    interviewQuestions: [
+      { question: "What's the difference between OFFSET/LIMIT and keyset pagination?", answer: "OFFSET/LIMIT skips a count of rows before returning a page, getting slower the deeper you page; keyset pagination filters directly on an indexed column's value, staying fast regardless of depth." },
+      { question: "Why does pagination need a stable ORDER BY?", answer: "Without one, the database doesn't guarantee row order between requests, so pages can end up showing duplicate or missing rows if the data or query plan shifts between calls." },
+      { question: "Why is deep OFFSET pagination slow on large tables?", answer: "The database still has to walk through (or count) all the skipped rows before it can return the requested slice, even though none of those skipped rows are actually returned." },
+    ],
+    prerequisites: ["filtering-and-sorting", "indexes"],
+    relatedTopics: ["filtering-and-sorting", "indexes", "query-optimization"],
+    keywords: ["pagination", "OFFSET", "LIMIT", "keyset pagination", "cursor pagination", "infinite scroll"],
+  },
 ];

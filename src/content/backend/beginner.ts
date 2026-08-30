@@ -758,6 +758,29 @@ function findByEmail(email) {
           { code: "models/usersModel.js", explanation: "The only file that knows how a user is actually stored — if you swapped databases, this is the only layer that would need to change." },
         ],
       },
+      {
+        title: "The full folder tree, and how it actually gets run",
+        code: `my-api/
+├── package.json          # scripts.dev = "node src/server.js"
+├── src/
+│   ├── server.js          # entry point: starts the app, calls app.listen()
+│   ├── app.js             # creates the Express app, wires up middleware + routes
+│   ├── routes/
+│   │   └── users.js
+│   ├── controllers/
+│   │   └── usersController.js
+│   ├── services/
+│   │   └── usersService.js
+│   ├── models/
+│   │   └── usersModel.js
+│   └── config/
+│       └── db.js          # database connection setup
+└── .env                   # DATABASE_URL, PORT, etc.
+
+# Run it with:
+$ npm run dev`,
+        explanation: "server.js is the one file that actually gets executed — everything else (app.js and the folders beneath it) is just code that server.js, directly or indirectly, requires and calls. npm run dev is a shortcut defined in package.json for node src/server.js, so nobody has to remember the exact entry-file path by hand.",
+      },
     ],
     howItWorks: `
 A request flows down through the layers and the response flows back up:
@@ -798,6 +821,7 @@ not before.
       "Putting raw database queries directly inside route handlers or controllers, defeating the point of having a separate data-access layer.",
       "Letting controllers grow their own business logic instead of delegating to a service, so the same rule gets duplicated across multiple controllers.",
       "Introducing the full layered structure for a two-endpoint prototype, adding indirection before there's any real complexity to manage.",
+      "Not knowing which file is actually the entry point, and guessing at how to start the app instead of checking package.json's scripts.",
     ],
     exercises: [
       { difficulty: "Easy", prompt: "For a function that checks whether a discount code has expired, name which layer (route, controller, service, or model) it belongs in and why." },
@@ -807,10 +831,10 @@ not before.
     interviewQuestions: [
       { question: "Why split a backend project into routes, controllers, services, and models instead of one file?", answer: "To separate concerns so each layer has one job and a predictable location — making the code easier to test, change, and navigate as it grows." },
       { question: "What's the difference between a controller and a service?", answer: "A controller translates an HTTP request into a plain function call and shapes the response; a service holds the actual business logic, independent of HTTP." },
-      { question: "What's the risk of always following a strict layered structure, even for tiny projects?", answer: "It adds indirection and files for logic simple enough to live in one place, making a small project harder to follow rather than easier." },
+      { question: "How does a command like npm run dev know which file to actually run?", answer: "It's a shortcut defined in package.json's scripts section, pointing at the project's real entry file — the file that calls app.listen() and starts the server." },
     ],
     prerequisites: ["routing", "middleware"],
-    relatedTopics: ["routing", "middleware", "dependency-injection"],
+    relatedTopics: ["routing", "middleware", "dependency-injection", "npm-and-packages"],
     keywords: ["project structure", "MVC", "layered architecture", "separation of concerns", "controllers", "services", "models"],
   },
   {

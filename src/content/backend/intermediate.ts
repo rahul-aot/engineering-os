@@ -690,6 +690,45 @@ await knex("users").where({ active: true });
 await prisma.user.findMany({ where: { active: true } });`,
         explanation: "All three end up running equivalent SQL — they differ only in how much of the SQL you write by hand versus how much the library generates for you.",
       },
+      {
+        title: "Full CRUD through a raw driver, inside route handlers",
+        code: `// Create
+app.post("/users", async (req, res) => {
+  const result = await pool.query(
+    "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
+    [req.body.name, req.body.email]
+  );
+  res.status(201).json(result.rows[0]);
+});
+
+// Read
+app.get("/users/:id", async (req, res) => {
+  const result = await pool.query("SELECT * FROM users WHERE id = $1", [req.params.id]);
+  if (result.rows.length === 0) return res.status(404).json({ error: "not found" });
+  res.json(result.rows[0]);
+});
+
+// Update
+app.put("/users/:id", async (req, res) => {
+  const result = await pool.query(
+    "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING *",
+    [req.body.name, req.body.email, req.params.id]
+  );
+  res.json(result.rows[0]);
+});
+
+// Delete
+app.delete("/users/:id", async (req, res) => {
+  await pool.query("DELETE FROM users WHERE id = $1", [req.params.id]);
+  res.status(204).end();
+});`,
+        explanation: "The same four SQL operations from basic CRUD, each wired to the matching HTTP method and route — this is what 'connecting to a database' actually looks like end to end in a real API, not just a single SELECT.",
+        walkthrough: [
+          { code: "INSERT INTO users (...) VALUES (...) RETURNING *", explanation: "RETURNING * hands back the newly created row (including any auto-generated id) in the same round trip, instead of needing a second SELECT afterward." },
+          { code: 'if (result.rows.length === 0) return res.status(404)', explanation: "A SELECT that matches nothing isn't an error — it just returns zero rows, so the route has to explicitly check for that and respond accordingly." },
+          { code: "UPDATE users SET ... WHERE id = $3 RETURNING *", explanation: "Scopes the update to exactly one row with the WHERE clause, and RETURNING * gives back the row as it looks after the change." },
+        ],
+      },
     ],
     howItWorks: `
 The app reads connection details (usually from an environment variable,
@@ -855,5 +894,271 @@ FastAPI's async model and Pydantic layer is unnecessary complexity.
     prerequisites: ["servers-and-web-frameworks", "routing"],
     relatedTopics: ["servers-and-web-frameworks", "routing", "middleware", "validation-and-sanitization"],
     keywords: ["FastAPI", "Python", "Pydantic", "ASGI", "Starlette", "async", "Flask", "Django", "Uvicorn"],
+  },
+  {
+    id: "authentication-and-passwords",
+    title: "Authentication & Password Hashing",
+    level: "intermediate",
+    description: "How a backend verifies who's making a request — never storing raw passwords, and remembering that someone is logged in across future requests.",
+    explanation: `
+A backend regularly needs to know who's actually asking: "who is this
+request from, and are they allowed to do this?" That's
+**authentication** — proving identity, usually by checking a password at
+login.
+
+The single most important rule: **never store a user's actual
+password.** Instead, store a **hash** — the output of a one-way function
+(like bcrypt or argon2) that scrambles the password so it can't be
+reversed back into the original, even if the entire database leaks. At
+login, you hash the freshly submitted password the same way and compare
+the two *hashes* — the plaintext password itself is never stored or
+compared directly.
+
+HTTP itself doesn't remember anything between requests, so once someone
+logs in, the backend needs a way to keep recognizing them on later
+requests too — either a **session** (the server remembers who's logged
+in, and gives the browser a cookie holding just an id to look it up) or
+a **token** like a JWT (a small, signed packet of data the client holds
+and resends, which the server can verify without storing anything
+itself).
+    `.trim(),
+    analogy:
+      "Hashing a password is like feeding it through a paper shredder: you get scrambled confetti out, and there's no way to feed the confetti back in and reconstruct the original page. To check a password later, you shred the newly typed one the same way and compare the confetti — you never keep the original page around to compare against directly.",
+    examples: [
+      {
+        title: "Hashing on signup, comparing on login (bcrypt)",
+        code: `const bcrypt = require("bcrypt");
+
+// Signup: hash before storing anything
+const passwordHash = await bcrypt.hash(plainPassword, 10);
+await pool.query(
+  "INSERT INTO users (email, password_hash) VALUES ($1, $2)",
+  [email, passwordHash]
+);
+
+// Login: compare against the stored hash
+const user = await findUserByEmail(email);
+const isValid = user && (await bcrypt.compare(submittedPassword, user.password_hash));
+if (!isValid) return res.status(401).json({ error: "invalid credentials" });`,
+        explanation: "The plaintext password only ever exists briefly in memory — the database stores password_hash, never the password itself, and login works by comparing hashes, not by 'unhashing' anything.",
+        walkthrough: [
+          { code: "bcrypt.hash(plainPassword, 10)", explanation: "Produces an irreversible, automatically salted hash — the 10 controls how computationally expensive it is, deliberately slow to resist brute-force guessing." },
+          { code: "password_hash", explanation: "The only thing ever written to the database — even a full database leak doesn't hand over usable passwords." },
+          { code: "bcrypt.compare(submittedPassword, user.password_hash)", explanation: "Hashes the submitted password the same way internally and checks whether it matches — the original stored hash is never reversed." },
+        ],
+      },
+      {
+        title: "Protecting a route with an auth middleware",
+        code: `function requireAuth(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token || !isValidToken(token)) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  req.user = decodeToken(token);
+  next();
+}
+
+app.get("/profile", requireAuth, (req, res) => {
+  res.json(req.user);
+});`,
+        explanation: "This is the requireAuth middleware referenced back in the middleware topic — it runs before the route handler and only calls next() once it has confirmed who the caller actually is.",
+      },
+    ],
+    howItWorks: `
+Password-hashing algorithms (bcrypt, scrypt, argon2) are deliberately
+slow, and mix in a random **salt** for every password, so that two
+users with the same password get different-looking hashes and an
+attacker can't precompute one shared table of hashes to crack many
+accounts at once (a "rainbow table"). After a successful login, staying
+recognized on future requests works one of two ways: a session stores
+the logged-in state server-side and hands the browser a cookie with
+just an id to look it up, while a token like a JWT carries the identity
+data itself, signed so the server can verify it wasn't tampered with —
+without needing to store anything server-side at all.
+    `.trim(),
+    whyItExists: `
+If a database stored passwords directly, any breach, backup leak, or
+careless insider access would hand over every user's actual password
+immediately — and because people reuse passwords across sites, that
+damage doesn't stay contained to just this one app. Hashing exists to
+make stored passwords useless to an attacker even if the entire database
+is exposed. Authentication overall exists because a server otherwise has
+no way to tell a returning, legitimate user apart from anyone else
+simply sending a similar-looking request.
+    `.trim(),
+    whenToUse: `
+Any system with real user accounts needs authentication once there's a
+"you" to log in as — hashing wherever a password is stored, and a
+session or token wherever the backend needs to keep recognizing a
+logged-in user across requests.
+    `.trim(),
+    whenNotToUse: `
+Don't hand-roll password hashing or session handling for anything real
+— use a well-audited library (bcrypt, argon2) or a full auth
+framework/service rather than inventing your own scheme, since subtle
+cryptographic mistakes are easy to make and extremely costly. Internal
+tools with no real user accounts to protect may not need full
+authentication at all.
+    `.trim(),
+    commonMistakes: [
+      "Storing passwords in plaintext, or hashing them with a fast general-purpose hash (like MD5 or SHA-256) instead of a slow, purpose-built one like bcrypt.",
+      "Comparing passwords with a simple equality check after hashing manually without a salt, letting identical passwords produce identical hashes and enabling rainbow-table attacks.",
+      "Confusing authentication ('who are you?') with authorization ('what are you allowed to do?') — being logged in doesn't automatically mean access to every resource should be granted.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Explain why a database breach is far less damaging if passwords were hashed with bcrypt instead of stored as plaintext." },
+      { difficulty: "Medium", prompt: "Write a signup and login flow using bcrypt.hash and bcrypt.compare, including the SQL to store and look up a user's password_hash." },
+      { difficulty: "Hard", prompt: "Explain the difference between session-based and token-based (JWT) authentication, including exactly where the 'you're logged in' state lives in each approach." },
+    ],
+    interviewQuestions: [
+      { question: "Why shouldn't passwords ever be stored in plaintext?", answer: "Because anyone who gains access to the database — through a breach, an insider, or a leaked backup — would get every user's actual password immediately, and since people reuse passwords across sites, that damage spreads beyond just this app." },
+      { question: "What's the difference between hashing and encryption for storing passwords?", answer: "Encryption is reversible with the right key; hashing is designed to be irreversible — which is exactly what's wanted for passwords, since you only ever need to verify a match, never recover the original." },
+      { question: "What's the difference between authentication and authorization?", answer: "Authentication confirms who a user is; authorization determines what that already-authenticated user is allowed to do." },
+    ],
+    prerequisites: ["middleware", "validation-and-sanitization"],
+    relatedTopics: ["middleware", "error-handling-apis", "connecting-to-a-database"],
+    keywords: ["authentication", "password hashing", "bcrypt", "JWT", "session", "authorization", "salt"],
+  },
+  {
+    id: "fastapi-database-and-crud",
+    title: "FastAPI Project Structure & Database CRUD",
+    level: "intermediate",
+    description: "How a real FastAPI project is split into files, connects to a database with SQLAlchemy, and exposes full CRUD endpoints.",
+    explanation: `
+A single \`main.py\` is fine for a two-route demo, but a real FastAPI
+project splits responsibilities across files, much like a layered
+Node.js app: \`database.py\` sets up the database connection,
+\`models.py\` defines the actual database tables as Python classes,
+\`schemas.py\` defines the Pydantic models describing what the API
+accepts and returns, and one or more router files group related
+endpoints, all wired together in \`main.py\`.
+
+**SQLAlchemy** is Python's most common tool for talking to a relational
+database. Used here as an ORM, it maps each database row to a Python
+object — the same idea as Prisma or Sequelize in Node, just in Python.
+    `.trim(),
+    analogy:
+      "It's the same layered kitchen from backend project structure, just relabeled for a Python kitchen: routers are the host seating guests, path functions are the server taking the order, and SQLAlchemy models are the pantry holding the actual ingredients.",
+    examples: [
+      {
+        title: "Project layout and the database connection",
+        code: `myapp/
+├── main.py           # creates the app, includes routers
+├── database.py        # engine + session setup
+├── models.py           # SQLAlchemy table definitions
+├── schemas.py          # Pydantic request/response shapes
+└── routers/
+    └── items.py         # /items endpoints
+
+# database.py
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+engine = create_engine("postgresql://user:password@localhost/mydb")
+SessionLocal = sessionmaker(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()`,
+        explanation: "get_db is a FastAPI dependency: because it uses yield, FastAPI runs everything before the yield, hands the route the session, then runs everything after the yield (closing it) once the request finishes — even if the route raised an error.",
+        walkthrough: [
+          { code: 'create_engine("postgresql://...")', explanation: "Opens the connection using a connection string — the exact same idea as pg.Pool in Node, just SQLAlchemy's version of it." },
+          { code: "SessionLocal = sessionmaker(bind=engine)", explanation: "A factory for creating a scoped 'unit of work' session, rather than sharing one connection across every unrelated request." },
+          { code: "def get_db(): ... yield db ... finally: db.close()", explanation: "Guarantees each request gets its own session and that it's always cleaned up afterward, success or failure." },
+        ],
+      },
+      {
+        title: "Full CRUD endpoints using that session",
+        code: `# routers/items.py
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from .. import models, schemas
+from ..database import get_db
+
+router = APIRouter()
+
+@router.post("/items", response_model=schemas.Item)
+def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
+    db_item = models.Item(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@router.get("/items/{item_id}", response_model=schemas.Item)
+def read_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@router.put("/items/{item_id}", response_model=schemas.Item)
+def update_item(item_id: int, updated: schemas.ItemCreate, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    for key, value in updated.dict().items():
+        setattr(item, key, value)
+    db.commit()
+    return item
+
+@router.delete("/items/{item_id}")
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    db.query(models.Item).filter(models.Item.id == item_id).delete()
+    db.commit()
+    return {"deleted": item_id}`,
+        explanation: "The same four CRUD operations from SQL — Create, Read, Update, Delete — expressed through SQLAlchemy's query API instead of raw SQL text, each one wired to its own route.",
+      },
+    ],
+    howItWorks: `
+\`db: Session = Depends(get_db)\` is FastAPI's dependency injection reusing
+\`get_db\` for every request — each request gets its own fresh session,
+used only for that request's queries, then closed. Calls like
+\`db.add\`, \`db.commit\`, \`db.query\`, and \`.delete()\` map to INSERT,
+UPDATE/COMMIT, SELECT, and DELETE statements that SQLAlchemy generates
+and sends over the underlying database connection, the same way the
+\`pg\` driver does in Node. To actually run the app, you start an ASGI
+server pointed at it: \`uvicorn main:app --reload\` — the Python
+equivalent of running \`node server.js\`, watching for changes with
+\`--reload\` during development.
+    `.trim(),
+    whyItExists: `
+Splitting a FastAPI project this way mirrors exactly why a Node backend
+gets split into routes/controllers/services/models: as endpoints and
+tables multiply, keeping the app's setup, data shape, and database logic
+each in one dedicated place keeps the project navigable, instead of
+tangled into a single growing file.
+    `.trim(),
+    whenToUse: `
+Reach for this structure once a FastAPI project has more than a couple
+of endpoints or more than one table — the same threshold as reaching
+for a layered structure in a Node project.
+    `.trim(),
+    whenNotToUse: `
+For a two-endpoint script or a quick prototype, separate
+database.py/models.py/schemas.py/router files are more scaffolding than
+the project needs — one main.py is easier to follow at that size.
+    `.trim(),
+    commonMistakes: [
+      "Forgetting db.commit() after db.add() or a mutation, leaving the change only staged in the session instead of actually written to the database.",
+      "Reusing one global session across every request instead of a fresh one per request via Depends(get_db), which can leak stale data or connections between unrelated requests.",
+      "Returning a raw SQLAlchemy model object instead of going through a Pydantic response_model, exposing internal fields (like a password hash) that were never meant to reach the client.",
+    ],
+    exercises: [
+      { difficulty: "Easy", prompt: "Name which file — database.py, models.py, schemas.py, or a router — a new 'orders' table definition belongs in." },
+      { difficulty: "Medium", prompt: "Write a DELETE /items/{item_id} endpoint that returns a 404 if the item doesn't exist before deleting it." },
+      { difficulty: "Hard", prompt: "Explain what would go wrong if a single database session, created once at app startup, were reused across every incoming request instead of one session per request." },
+    ],
+    interviewQuestions: [
+      { question: "What does Depends(get_db) provide to a FastAPI route?", answer: "A fresh, request-scoped SQLAlchemy session that's automatically closed afterward — similar to Express middleware attaching something onto the request object." },
+      { question: "What command actually runs a FastAPI app?", answer: "uvicorn main:app --reload — an ASGI server pointed at the created FastAPI instance, with --reload restarting it on code changes during development." },
+      { question: "Why use a Pydantic response_model instead of returning the raw database object?", answer: "It controls exactly which fields are exposed to the client, preventing internal-only fields from leaking into the API response." },
+    ],
+    prerequisites: ["python-web-frameworks", "connecting-to-a-database"],
+    relatedTopics: ["python-web-frameworks", "connecting-to-a-database", "project-structure"],
+    keywords: ["FastAPI", "SQLAlchemy", "CRUD", "Pydantic", "dependency injection", "uvicorn", "Python ORM"],
   },
 ];
